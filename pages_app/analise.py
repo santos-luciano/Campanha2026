@@ -30,18 +30,6 @@ def tela_principal():
 
     st.title("Análise de Comentários - LabCaos")
 
-    files = st.file_uploader(
-        "Carregue arquivos Excel",
-        type=["xlsx", "xls"],
-        accept_multiple_files=True
-    )
-
-    if not files:
-        st.stop()
-
-    df = carregar_e_normalizar(files)
-    total_comentarios = df["Comment"].dropna().shape[0]
-
     st.sidebar.markdown("---")
     pagina = st.sidebar.radio(
         "Menu",
@@ -51,6 +39,18 @@ def tela_principal():
     if pagina == "Classificador de legendas":
         _aba_classificador_legendas()
     else:
+        files = st.file_uploader(
+            "Carregue arquivos Excel",
+            type=["xlsx", "xls"],
+            accept_multiple_files=True
+        )
+
+        if not files:
+            st.stop()
+
+        df = carregar_e_normalizar(files)
+        total_comentarios = df["Comment"].dropna().shape[0]
+
         _aba_classificacao_comentarios(df, total_comentarios)
 
 
