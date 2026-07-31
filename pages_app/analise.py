@@ -10,7 +10,7 @@ from config.schema_classifier import schema_classifier_consolidado
 from core.classificar_sentimentos import SentimentAnalysisPipeline
 from core.classifier_legend import CaptionClassifier
 from core.comment_classifier import CommentClassifier
-from core.twitter_search import buscar_periodo, TwitterAPIError
+from core.twitter_search import buscar_periodo, diagnosticar_token, TwitterAPIError
 from core.wordcloud_builder import gerar_nuvem_palavras
 
 from utils.excel_loader import carregar_e_normalizar
@@ -80,6 +80,17 @@ def _aba_classificador_legendas():
 # =================================================
 def _aba_twitter():
     st.subheader("Busca no Twitter/X")
+
+    with st.expander("🔧 Diagnóstico do token"):
+        info = diagnosticar_token()
+        if not info["encontrado"]:
+            st.error("bearer_token não encontrado em st.secrets nem em variável de ambiente.")
+        else:
+            st.write(f"✅ Token encontrado via **{info['origem']}**")
+            st.write(f"Tamanho: {info['tamanho']} caracteres")
+            st.write(f"Começa com: `{info['prefixo']}...` termina com: `...{info['sufixo']}`")
+            if info["tem_espacos_nas_pontas"]:
+                st.warning("⚠️ O token tem espaços no início/fim — isso pode causar erro 401.")
 
     col1, col2 = st.columns(2)
     with col1:

@@ -27,6 +27,33 @@ def _get_bearer_token():
     return token
 
 
+def diagnosticar_token():
+    """Retorna informações mascaradas sobre o token carregado, para
+    debug sem expor o valor completo na tela."""
+    origem = None
+    token = st.secrets.get("bearer_token")
+    if token:
+        origem = "st.secrets"
+    else:
+        token = os.getenv("bearer_token")
+        if token:
+            origem = "variável de ambiente"
+
+    if not token:
+        return {"encontrado": False}
+
+    tem_espacos = token != token.strip()
+    token = token.strip()
+    return {
+        "encontrado": True,
+        "origem": origem,
+        "tamanho": len(token),
+        "prefixo": token[:6],
+        "sufixo": token[-4:],
+        "tem_espacos_nas_pontas": tem_espacos,
+    }
+
+
 def _get_client():
     return Client(bearer_token=_get_bearer_token())
 
