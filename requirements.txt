@@ -1,0 +1,6 @@
+openai
+streamlit
+pandas
+random
+os
+dotenv
