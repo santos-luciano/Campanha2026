@@ -6,3 +6,4 @@ openpyxl
 numpy
 xdk
 wordcloud
+unidecode
