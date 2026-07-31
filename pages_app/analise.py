@@ -11,7 +11,7 @@ from core.classifier_legend import CaptionClassifier
 from core.comment_classifier import CommentClassifier
 
 from utils.excel_loader import carregar_e_normalizar
-from utils.google_sheets import carregar_planilha_google
+from utils.local_data_loader import carregar_planilha_local
 from utils.metrics import (
     marcar_mencao_projeto,
     contar_duplicados,
@@ -76,27 +76,16 @@ def _aba_classificador_legendas():
 # =================================================
 # PÁGINA — HISTÓRICO TWITTER / X
 # =================================================
+from utils.excel_loader import carregar_planilha_local  # troca o import do google_sheets
+
+
 def _aba_twitter():
     st.subheader("📈 Histórico Twitter/X")
-    st.caption(
-        "Gráfico de evolução a partir de uma planilha do Google Sheets, "
-        "atualizada diariamente."
-    )
-
-    link_padrao = st.secrets.get("historico_twitter_sheet_url", "")
-    link = st.text_input(
-        "Link da planilha (Google Sheets)",
-        value=link_padrao,
-        placeholder="https://docs.google.com/spreadsheets/d/..."
-    )
-
-    if not link.strip():
-        st.info("Cole o link da planilha do Google Sheets para carregar o histórico.")
-        return
+    st.caption("Gráfico de evolução a partir dos dados salvos em data/arquivo.xlsx")
 
     try:
-        df = carregar_planilha_google(link)
-    except ValueError as err:
+        df = carregar_planilha_local("data/arquivo.xlsx")
+    except FileNotFoundError as err:
         st.error(f"⚠️ {err}")
         return
 
@@ -129,8 +118,6 @@ def _aba_twitter():
 
     with st.expander("Ver dados da planilha"):
         st.dataframe(df, use_container_width=True)
-
-
 # =================================================
 # PÁGINA — CLASSIFICAÇÃO DE COMENTÁRIOS
 # =================================================
