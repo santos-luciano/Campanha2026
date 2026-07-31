@@ -1,6 +1,4 @@
 openai
 streamlit
 pandas
-random
-os
-dotenv
+python-dotenv
