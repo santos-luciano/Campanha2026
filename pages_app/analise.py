@@ -116,12 +116,13 @@ def _aba_twitter():
         else:
             try:
                 with st.spinner(f"Buscando tweets sobre \"{termo}\"..."):
-                    df_twitter, contagens = buscar_periodo(
+                    df_twitter, contagens, aviso_contagem = buscar_periodo(
                         termo, int(dias), max_results=int(max_results)
                     )
                 st.session_state.df_twitter = df_twitter
                 st.session_state.termo_twitter = termo
                 st.session_state.contagens_twitter = contagens
+                st.session_state.aviso_contagem_twitter = aviso_contagem
             except TwitterAPIError as err:
                 st.error(f"⚠️ {err}")
 
@@ -132,8 +133,12 @@ def _aba_twitter():
 
         st.markdown(f"**💬 Total de tweets coletados:** {len(df_twitter)}")
 
+        aviso_contagem = st.session_state.get("aviso_contagem_twitter")
+        if aviso_contagem:
+            st.info(f"ℹ️ {aviso_contagem}")
+
         contagens = st.session_state.get("contagens_twitter", [])
-        if contagens:
+        if contagens and not aviso_contagem:
             st.markdown("**📅 Menções por dia (contagem total da API):**")
             for item in contagens:
                 st.markdown(f"- {item['data']}: {item['contagem']}")
