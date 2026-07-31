@@ -9,7 +9,7 @@ from config.schema_classifier import schema_classifier_consolidado
 from core.classificar_sentimentos import SentimentAnalysisPipeline
 from core.classifier_legend import CaptionClassifier
 from core.comment_classifier import CommentClassifier
-from utils.excel_loader import carregar_planilha_local  # troca o import do google_sheets
+from utils.excel_loader import carregar_e_normalizar  # troca o import do google_sheets
 from utils.local_data_loader import carregar_planilha_local
 from utils.metrics import (
     marcar_mencao_projeto,
