@@ -10,7 +10,7 @@ from config.schema_classifier import schema_classifier_consolidado
 from core.classificar_sentimentos import SentimentAnalysisPipeline
 from core.classifier_legend import CaptionClassifier
 from core.comment_classifier import CommentClassifier
-from core.twitter_search import buscar_periodo
+from core.twitter_search import buscar_periodo, TwitterAPIError
 from core.wordcloud_builder import gerar_nuvem_palavras
 
 from utils.excel_loader import carregar_e_normalizar
@@ -103,13 +103,16 @@ def _aba_twitter():
         if not termo.strip():
             st.warning("Informe um termo de busca.")
         else:
-            with st.spinner(f"Buscando tweets sobre \"{termo}\"..."):
-                df_twitter, contagens = buscar_periodo(
-                    termo, int(dias), max_results=int(max_results)
-                )
-            st.session_state.df_twitter = df_twitter
-            st.session_state.termo_twitter = termo
-            st.session_state.contagens_twitter = contagens
+            try:
+                with st.spinner(f"Buscando tweets sobre \"{termo}\"..."):
+                    df_twitter, contagens = buscar_periodo(
+                        termo, int(dias), max_results=int(max_results)
+                    )
+                st.session_state.df_twitter = df_twitter
+                st.session_state.termo_twitter = termo
+                st.session_state.contagens_twitter = contagens
+            except TwitterAPIError as err:
+                st.error(f"⚠️ {err}")
 
     df_twitter = st.session_state.get("df_twitter")
 
