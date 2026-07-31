@@ -1,3 +1,4 @@
+import io
 import os
 import random
 
@@ -9,6 +10,8 @@ from config.schema_classifier import schema_classifier_consolidado
 from core.classificar_sentimentos import SentimentAnalysisPipeline
 from core.classifier_legend import CaptionClassifier
 from core.comment_classifier import CommentClassifier
+from core.twitter_search import buscar_periodo
+from core.wordcloud_builder import gerar_nuvem_palavras
 
 from utils.excel_loader import carregar_e_normalizar
 from utils.metrics import (
@@ -33,11 +36,13 @@ def tela_principal():
     st.sidebar.markdown("---")
     pagina = st.sidebar.radio(
         "Menu",
-        ["Classificador de legendas", "🤖 Classificação"]
+        ["Classificador de legendas", "🤖 Classificação", "🐦 Twitter"]
     )
 
     if pagina == "Classificador de legendas":
         _aba_classificador_legendas()
+    elif pagina == "🐦 Twitter":
+        _aba_twitter()
     else:
         files = st.file_uploader(
             "Carregue arquivos Excel",
@@ -68,6 +73,93 @@ def _aba_classificador_legendas():
         if legenda.strip():
             resultado = classifier.classify(legenda)
             st.success(f"**Categoria:** {resultado['categoria']}")
+
+
+# =================================================
+# PÁGINA — TWITTER / X
+# =================================================
+def _aba_twitter():
+    st.subheader("Busca no Twitter/X")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        termo = st.text_input("Termo de busca", placeholder="ex: jaques wagner")
+    with col2:
+        dias = st.number_input(
+            "Dias a buscar (a partir de ontem)",
+            min_value=1, max_value=30, value=1
+        )
+
+    max_results = st.slider(
+        "Máximo de tweets por dia", min_value=10, max_value=100, value=100, step=10
+    )
+
+    palavras_chave = st.text_input(
+        "Palavras-chave para monitorar (separadas por vírgula, opcional)",
+        placeholder="ex: master, traidor"
+    )
+
+    if st.button("Buscar tweets"):
+        if not termo.strip():
+            st.warning("Informe um termo de busca.")
+        else:
+            with st.spinner(f"Buscando tweets sobre \"{termo}\"..."):
+                df_twitter, contagens = buscar_periodo(
+                    termo, int(dias), max_results=int(max_results)
+                )
+            st.session_state.df_twitter = df_twitter
+            st.session_state.termo_twitter = termo
+            st.session_state.contagens_twitter = contagens
+
+    df_twitter = st.session_state.get("df_twitter")
+
+    if df_twitter is not None and not df_twitter.empty:
+        termo_buscado = st.session_state.get("termo_twitter", termo)
+
+        st.markdown(f"**💬 Total de tweets coletados:** {len(df_twitter)}")
+
+        contagens = st.session_state.get("contagens_twitter", [])
+        if contagens:
+            st.markdown("**📅 Menções por dia (contagem total da API):**")
+            for item in contagens:
+                st.markdown(f"- {item['data']}: {item['contagem']}")
+
+        if palavras_chave.strip():
+            st.markdown("**📊 Menções por palavra-chave:**")
+            for termo_chave in [t.strip() for t in palavras_chave.split(",") if t.strip()]:
+                qtd = df_twitter["Comment"].str.contains(
+                    termo_chave, case=False, na=False
+                ).sum()
+                st.markdown(f"- **{termo_chave}:** {qtd}")
+
+        st.dataframe(df_twitter, use_container_width=True)
+
+        csv = df_twitter.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Baixar tweets (CSV)",
+            data=csv,
+            file_name=f"tweets_{termo_buscado.replace(' ', '_')}.csv",
+            mime="text/csv"
+        )
+
+        st.subheader("☁️ Nuvem de Palavras")
+
+        stopwords_extra = ["https", "nao"] + termo_buscado.lower().split()
+        wc = gerar_nuvem_palavras(df_twitter["Comment"], palavras_ignoradas=stopwords_extra)
+
+        if wc is None:
+            st.info("Não há palavras suficientes para gerar a nuvem (tente reduzir a frequência mínima ou buscar mais dias).")
+        else:
+            st.image(wc.to_array(), use_container_width=True)
+
+            buffer = io.BytesIO()
+            wc.to_image().save(buffer, format="PNG")
+            st.download_button(
+                "⬇️ Baixar nuvem de palavras (PNG)",
+                data=buffer.getvalue(),
+                file_name=f"nuvem_{termo_buscado.replace(' ', '_')}.png",
+                mime="image/png"
+            )
 
 
 # =================================================
