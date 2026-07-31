@@ -42,96 +42,98 @@ def tela_principal():
     df = carregar_e_normalizar(files)
     total_comentarios = df["Comment"].dropna().shape[0]
 
-    tab_wc, tab_cls = st.tabs(
+    st.sidebar.markdown("---")
+    pagina = st.sidebar.radio(
+        "Menu",
         ["Classificador de legendas", "🤖 Classificação"]
     )
 
-    _aba_classificador_legendas(tab_wc)
-    _aba_classificacao_comentarios(tab_cls, df, total_comentarios)
+    if pagina == "Classificador de legendas":
+        _aba_classificador_legendas()
+    else:
+        _aba_classificacao_comentarios(df, total_comentarios)
 
 
 # =================================================
-# ABA 1 — CLASSIFICADOR DE LEGENDAS
+# PÁGINA — CLASSIFICADOR DE LEGENDAS
 # =================================================
-def _aba_classificador_legendas(tab):
-    with tab:
-        st.subheader("Classificador de Legendas")
+def _aba_classificador_legendas():
+    st.subheader("Classificador de Legendas")
 
-        legenda = st.text_area("Cole a legenda", height=200)
+    legenda = st.text_area("Cole a legenda", height=200)
 
-        classifier = CaptionClassifier(api_key=os.getenv("OPENAI_API_KEY"))
+    classifier = CaptionClassifier(api_key=os.getenv("OPENAI_API_KEY"))
 
-        if st.button("Classificar"):
-            if legenda.strip():
-                resultado = classifier.classify(legenda)
-                st.success(f"**Categoria:** {resultado['categoria']}")
+    if st.button("Classificar"):
+        if legenda.strip():
+            resultado = classifier.classify(legenda)
+            st.success(f"**Categoria:** {resultado['categoria']}")
 
 
 # =================================================
-# ABA 2 — CLASSIFICAÇÃO DE COMENTÁRIOS
+# PÁGINA — CLASSIFICAÇÃO DE COMENTÁRIOS
 # =================================================
-def _aba_classificacao_comentarios(tab, df, total_comentarios):
-    with tab:
-        st.subheader("Classificação dos Comentários")
+def _aba_classificacao_comentarios(df, total_comentarios):
+    st.subheader("Classificação dos Comentários")
 
-        contexto = st.text_area(
-            "Contexto da classificação",
-            placeholder="Ex: Comentários sobre investimentos em saúde na Bahia feitos por políticos"
+    contexto = st.text_area(
+        "Contexto da classificação",
+        placeholder="Ex: Comentários sobre investimentos em saúde na Bahia feitos por políticos"
+    )
+
+    opcao = st.radio(
+        "Escolha a classificação:",
+        ["Jaques Wagner", "Camaçari"]
+    )
+
+    duplicados = 0
+
+    if opcao == "Jaques Wagner":
+        df = marcar_mencao_projeto(df)
+        duplicados = contar_duplicados(df)
+        comentarios_df = filtrar_comentarios_validos(df)
+    else:
+        comentarios_df = df
+
+    comentarios = (
+        comentarios_df["Comment"]
+        .dropna()
+        .astype(str)
+        .tolist()
+    )
+
+    comentarios1 = (
+        random.sample(comentarios, 1000)
+        if len(comentarios) > 1000
+        else comentarios
+    )
+
+    n_projetos = 0
+
+    if st.button("Classificar comentários"):
+        classifier = CommentClassifier(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            schema=schema_classifier,
+            contexto=contexto
         )
 
-        opcao = st.radio(
-            "Escolha a classificação:",
-            ["Jaques Wagner", "Camaçari"]
+        with st.spinner("Classificando comentários..."):
+            resultado = classifier.classify(comentarios1)
+
+        df_classificado_1 = pd.DataFrame(resultado["respostas"])
+
+        mask_projeto = marcar_mencao_pl_no_motivo(df_classificado_1)
+        n_projetos = mask_projeto.sum()
+
+        st.session_state.df_classificado = df_classificado_1[~mask_projeto]
+
+        st.success("Classificação concluída!")
+
+    if st.session_state.df_classificado is not None:
+        _exibir_resultados(
+            df, total_comentarios, opcao, duplicados, n_projetos,
+            comentarios, contexto
         )
-
-        duplicados = 0
-
-        if opcao == "Jaques Wagner":
-            df = marcar_mencao_projeto(df)
-            duplicados = contar_duplicados(df)
-            comentarios_df = filtrar_comentarios_validos(df)
-        else:
-            comentarios_df = df
-
-        comentarios = (
-            comentarios_df["Comment"]
-            .dropna()
-            .astype(str)
-            .tolist()
-        )
-
-        comentarios1 = (
-            random.sample(comentarios, 1000)
-            if len(comentarios) > 1000
-            else comentarios
-        )
-
-        n_projetos = 0
-
-        if st.button("Classificar comentários"):
-            classifier = CommentClassifier(
-                api_key=os.getenv("OPENAI_API_KEY"),
-                schema=schema_classifier,
-                contexto=contexto
-            )
-
-            with st.spinner("Classificando comentários..."):
-                resultado = classifier.classify(comentarios1)
-
-            df_classificado_1 = pd.DataFrame(resultado["respostas"])
-
-            mask_projeto = marcar_mencao_pl_no_motivo(df_classificado_1)
-            n_projetos = mask_projeto.sum()
-
-            st.session_state.df_classificado = df_classificado_1[~mask_projeto]
-
-            st.success("Classificação concluída!")
-
-        if st.session_state.df_classificado is not None:
-            _exibir_resultados(
-                df, total_comentarios, opcao, duplicados, n_projetos,
-                comentarios, contexto
-            )
 
 
 def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
