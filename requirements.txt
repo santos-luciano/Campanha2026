@@ -10,3 +10,4 @@ unidecode
 nltk
 locale
 datetime
+re
