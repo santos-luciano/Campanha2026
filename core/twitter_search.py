@@ -27,31 +27,12 @@ def _get_bearer_token():
     return token
 
 
-def diagnosticar_token():
-    """Retorna informações mascaradas sobre o token carregado, para
-    debug sem expor o valor completo na tela."""
-    origem = None
-    token = st.secrets.get("bearer_token")
-    if token:
-        origem = "st.secrets"
-    else:
-        token = os.getenv("bearer_token")
-        if token:
-            origem = "variável de ambiente"
-
-    if not token:
-        return {"encontrado": False}
-
-    tem_espacos = token != token.strip()
-    token = token.strip()
-    return {
-        "encontrado": True,
-        "origem": origem,
-        "tamanho": len(token),
-        "prefixo": token[:6],
-        "sufixo": token[-4:],
-        "tem_espacos_nas_pontas": tem_espacos,
-    }
+def _campo(obj, nome):
+    """Lê um campo de `obj` seja ele um dict (obj[nome]) ou um objeto
+    (obj.nome, ex: modelo Pydantic retornado pelo xdk)."""
+    if isinstance(obj, dict):
+        return obj.get(nome)
+    return getattr(obj, nome, None)
 
 
 def _get_client():
@@ -141,7 +122,7 @@ def buscar_tweet(termo, data, max_results=100, incluir_contagem=True):
             for page in paginas_contagem:
                 if page.data:
                     for item in page.data:
-                        contagem_termo += item["tweet_count"]
+                        contagem_termo += _campo(item, "tweet_count") or 0
         except TwitterAPIError:
             # Contagem é opcional (endpoint costuma exigir plano pago) —
             # não impede a busca de tweets de continuar.
@@ -168,9 +149,9 @@ def buscar_tweet(termo, data, max_results=100, incluir_contagem=True):
                 if coletados >= max_results:
                     break
                 comentarios.append({
-                    "Comment": post["text"],
+                    "Comment": _campo(post, "text"),
                     "mes_ano": data,
-                    "id": post["id"]
+                    "id": _campo(post, "id")
                 })
                 coletados += 1
         if coletados >= max_results:
