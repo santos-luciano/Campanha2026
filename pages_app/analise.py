@@ -1,4 +1,3 @@
-import io
 import os
 import random
 
@@ -10,10 +9,9 @@ from config.schema_classifier import schema_classifier_consolidado
 from core.classificar_sentimentos import SentimentAnalysisPipeline
 from core.classifier_legend import CaptionClassifier
 from core.comment_classifier import CommentClassifier
-from core.twitter_search import buscar_periodo, TwitterAPIError
-from core.wordcloud_builder import gerar_nuvem_palavras
 
 from utils.excel_loader import carregar_e_normalizar
+from utils.google_sheets import carregar_planilha_google
 from utils.metrics import (
     marcar_mencao_projeto,
     contar_duplicados,
@@ -76,98 +74,61 @@ def _aba_classificador_legendas():
 
 
 # =================================================
-# PÁGINA — TWITTER / X
+# PÁGINA — HISTÓRICO TWITTER / X
 # =================================================
 def _aba_twitter():
-    st.subheader("Busca no Twitter/X")
+    st.subheader("📈 Histórico Twitter/X")
+    st.caption(
+        "Gráfico de evolução a partir de uma planilha do Google Sheets, "
+        "atualizada diariamente."
+    )
+
+    link_padrao = st.secrets.get("historico_twitter_sheet_url", "")
+    link = st.text_input(
+        "Link da planilha (Google Sheets)",
+        value=link_padrao,
+        placeholder="https://docs.google.com/spreadsheets/d/..."
+    )
+
+    if not link.strip():
+        st.info("Cole o link da planilha do Google Sheets para carregar o histórico.")
+        return
+
+    try:
+        df = carregar_planilha_google(link)
+    except ValueError as err:
+        st.error(f"⚠️ {err}")
+        return
+
+    if df.empty:
+        st.warning("A planilha está vazia.")
+        return
+
+    colunas = df.columns.tolist()
 
     col1, col2 = st.columns(2)
     with col1:
-        termo = st.text_input("Termo de busca", placeholder="ex: jaques wagner")
+        coluna_data = st.selectbox("Coluna de data", colunas, index=0)
     with col2:
-        dias = st.number_input(
-            "Dias a buscar (a partir de ontem)",
-            min_value=1, max_value=30, value=1
+        colunas_restantes = [c for c in colunas if c != coluna_data]
+        coluna_valor = st.selectbox("Coluna de valor", colunas_restantes)
+
+    df_plot = df[[coluna_data, coluna_valor]].copy()
+    df_plot[coluna_data] = pd.to_datetime(df_plot[coluna_data], errors="coerce", dayfirst=True)
+    df_plot[coluna_valor] = pd.to_numeric(df_plot[coluna_valor], errors="coerce")
+    df_plot = df_plot.dropna(subset=[coluna_data, coluna_valor]).sort_values(coluna_data)
+
+    if df_plot.empty:
+        st.warning(
+            "Não consegui converter as colunas escolhidas em data/número. "
+            "Verifique se selecionou as colunas certas."
         )
+        return
 
-    max_results = st.slider(
-        "Máximo de tweets por dia", min_value=10, max_value=100, value=100, step=10
-    )
+    st.line_chart(df_plot.set_index(coluna_data)[coluna_valor])
 
-    palavras_chave = st.text_input(
-        "Palavras-chave para monitorar (separadas por vírgula, opcional)",
-        placeholder="ex: master, traidor"
-    )
-
-    if st.button("Buscar tweets"):
-        if not termo.strip():
-            st.warning("Informe um termo de busca.")
-        else:
-            try:
-                with st.spinner(f"Buscando tweets sobre \"{termo}\"..."):
-                    df_twitter, contagens, aviso_contagem = buscar_periodo(
-                        termo, int(dias), max_results=int(max_results)
-                    )
-                st.session_state.df_twitter = df_twitter
-                st.session_state.termo_twitter = termo
-                st.session_state.contagens_twitter = contagens
-                st.session_state.aviso_contagem_twitter = aviso_contagem
-            except TwitterAPIError as err:
-                st.error(f"⚠️ {err}")
-
-    df_twitter = st.session_state.get("df_twitter")
-
-    if df_twitter is not None and not df_twitter.empty:
-        termo_buscado = st.session_state.get("termo_twitter", termo)
-
-        st.markdown(f"**💬 Total de tweets coletados:** {len(df_twitter)}")
-
-        aviso_contagem = st.session_state.get("aviso_contagem_twitter")
-        if aviso_contagem:
-            st.info(f"ℹ️ {aviso_contagem}")
-
-        contagens = st.session_state.get("contagens_twitter", [])
-        if contagens and not aviso_contagem:
-            st.markdown("**📅 Menções por dia (contagem total da API):**")
-            for item in contagens:
-                st.markdown(f"- {item['data']}: {item['contagem']}")
-
-        if palavras_chave.strip():
-            st.markdown("**📊 Menções por palavra-chave:**")
-            for termo_chave in [t.strip() for t in palavras_chave.split(",") if t.strip()]:
-                qtd = df_twitter["Comment"].str.contains(
-                    termo_chave, case=False, na=False
-                ).sum()
-                st.markdown(f"- **{termo_chave}:** {qtd}")
-
-        st.dataframe(df_twitter, use_container_width=True)
-
-        csv = df_twitter.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            "⬇️ Baixar tweets (CSV)",
-            data=csv,
-            file_name=f"tweets_{termo_buscado.replace(' ', '_')}.csv",
-            mime="text/csv"
-        )
-
-        st.subheader("☁️ Nuvem de Palavras")
-
-        stopwords_extra = ["https", "nao"] + termo_buscado.lower().split()
-        wc = gerar_nuvem_palavras(df_twitter["Comment"], palavras_ignoradas=stopwords_extra)
-
-        if wc is None:
-            st.info("Não há palavras suficientes para gerar a nuvem (tente reduzir a frequência mínima ou buscar mais dias).")
-        else:
-            st.image(wc.to_array(), use_container_width=True)
-
-            buffer = io.BytesIO()
-            wc.to_image().save(buffer, format="PNG")
-            st.download_button(
-                "⬇️ Baixar nuvem de palavras (PNG)",
-                data=buffer.getvalue(),
-                file_name=f"nuvem_{termo_buscado.replace(' ', '_')}.png",
-                mime="image/png"
-            )
+    with st.expander("Ver dados da planilha"):
+        st.dataframe(df, use_container_width=True)
 
 
 # =================================================
