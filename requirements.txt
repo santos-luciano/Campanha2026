@@ -8,3 +8,6 @@ xdk
 wordcloud
 unidecode
 nltk
+locale
+datetime
+utils
