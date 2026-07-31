@@ -82,7 +82,7 @@ def _aba_twitter():
     st.caption("Gráfico de evolução a partir dos dados salvos em data/arquivo.xlsx")
 
     try:
-        df = carregar_planilha_local("data/arquivo.xlsx")
+        df = carregar_planilha_local("data/twitter.xlsx")
     except FileNotFoundError as err:
         st.error(f"⚠️ {err}")
         return
