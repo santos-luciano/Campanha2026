@@ -354,10 +354,7 @@ def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
         )
         st.markdown("---")
 
-    if "df_resultado" not in st.session_state:
-        st.info("Clique em '📊 Analisar sentimentos' para gerar os temas principais "
-                 "e os destaques por categoria.")
-    else:
+    if "df_resultado" in st.session_state:
         resultado = st.session_state.df_resultado.iloc[0]
         topicos = resultado["main_topics"]
 
