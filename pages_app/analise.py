@@ -309,8 +309,11 @@ def _aba_classificacao_comentarios(df, total_comentarios):
         )
 
 
+#def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
+#                        comentarios, contexto):
 def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
-                        comentarios, contexto):
+comentarios, contexto):
+
     st.markdown("**✏️ Classificação dos comentários** — clique em uma célula da coluna "
                 "*classificacao* para corrigir manualmente, se necessário.")
 
