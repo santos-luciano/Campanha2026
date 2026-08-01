@@ -1,5 +1,6 @@
 import io
 import re
+import urllib.parse
 
 import pandas as pd
 import requests
@@ -45,27 +46,24 @@ def _montar_csv_url_sem_gid(link):
     return f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
 
 
-def carregar_planilha_google(link):
-    """
-    Carrega uma planilha pública do Google Sheets (compartilhada como
-    "Qualquer pessoa com o link pode visualizar", ou publicada via
-    Arquivo → Compartilhar → Publicar na web) a partir do link normal
-    do navegador, retornando um DataFrame.
-    """
-    csv_url = _montar_csv_url(link)
-    resp = requests.get(csv_url, allow_redirects=True)
+def _montar_csv_url_por_nome(link, nome_aba):
+    sheet_id = _extrair_sheet_id(link)
+    nome_codificado = urllib.parse.quote(nome_aba)
+    return (
+        f"https://docs.google.com/spreadsheets/d/{sheet_id}"
+        f"/gviz/tq?tqx=out:csv&sheet={nome_codificado}"
+    )
 
-    # Se o gid da URL não existir na planilha, o Google responde 400.
-    # Tenta de novo sem o gid, pegando a primeira aba.
-    if resp.status_code == 400 and not _eh_link_publicado(link):
-        csv_url = _montar_csv_url_sem_gid(link)
-        resp = requests.get(csv_url, allow_redirects=True)
+
+def _baixar_e_validar_csv(csv_url):
+    """Faz o GET e converte para DataFrame, detectando os erros mais comuns
+    (planilha privada, aba inexistente, resposta vazia)."""
+    resp = requests.get(csv_url, allow_redirects=True)
 
     if resp.status_code != 200:
         raise ValueError(
             f"Não consegui acessar a planilha (status {resp.status_code}). "
-            f"URL testada: {csv_url}. Confira se o link está correto e se a "
-            "aba referenciada ainda existe."
+            f"URL testada: {csv_url}."
         )
 
     content_type = resp.headers.get("Content-Type", "")
@@ -89,3 +87,30 @@ def carregar_planilha_google(link):
         raise ValueError("A planilha foi carregada, mas está vazia ou sem colunas reconhecíveis.")
 
     return df
+
+
+def carregar_planilha_google(link):
+    """
+    Carrega a primeira aba (ou a aba indicada pelo gid do link) de uma
+    planilha pública do Google Sheets, retornando um DataFrame.
+    """
+    csv_url = _montar_csv_url(link)
+
+    try:
+        return _baixar_e_validar_csv(csv_url)
+    except ValueError:
+        # Se o gid da URL não existir na planilha, o Google responde 400.
+        # Tenta de novo sem o gid, pegando a primeira aba.
+        if _eh_link_publicado(link):
+            raise
+        csv_url = _montar_csv_url_sem_gid(link)
+        return _baixar_e_validar_csv(csv_url)
+
+
+def carregar_aba_por_nome(link, nome_aba):
+    """
+    Carrega uma aba específica de uma planilha pública do Google Sheets
+    pelo NOME da aba (ex: "Gráfico", "Comentários"), sem depender do gid.
+    """
+    csv_url = _montar_csv_url_por_nome(link, nome_aba)
+    return _baixar_e_validar_csv(csv_url)

@@ -13,7 +13,7 @@ from core.comment_classifier import CommentClassifier
 from core.exportcomments_client import extrair_comentarios, ExportCommentsError
 
 from utils.excel_loader import carregar_e_normalizar
-from utils.google_sheets import carregar_planilha_google
+from utils.google_sheets import carregar_aba_por_nome
 from utils.metrics import (
     marcar_mencao_projeto,
     contar_duplicados,
@@ -85,11 +85,17 @@ def _aba_classificador_legendas():
 # =================================================
 # PÁGINA — HISTÓRICO TWITTER / X
 # =================================================
+NOME_ABA_GRAFICO = "Gráfico"
+NOME_ABA_COMENTARIOS = "Comentários"
+COLUNA_DATA = "Data"
+COLUNA_VALOR = "Menções a Jaques Wagner"
+
+
 def _aba_twitter():
     st.subheader("📈 Histórico Twitter/X")
     st.caption(
-        "Gráfico de evolução a partir de uma planilha do Google Sheets, "
-        "atualizada diariamente."
+        f"Evolução de {COLUNA_VALOR.lower()} ao longo do tempo, "
+        f"a partir da aba '{NOME_ABA_GRAFICO}' da planilha (atualizada diariamente)."
     )
 
     link = st.secrets.get("historico_twitter_sheet_url", "")
@@ -102,40 +108,46 @@ def _aba_twitter():
         return
 
     try:
-        df = carregar_planilha_google(link)
+        df = carregar_aba_por_nome(link, NOME_ABA_GRAFICO)
     except ValueError as err:
         st.error(f"⚠️ {err}")
         return
 
-    if df.empty:
-        st.warning("A planilha está vazia.")
-        return
-
-    colunas = df.columns.tolist()
-
-    col1, col2 = st.columns(2)
-    with col1:
-        coluna_data = st.selectbox("Coluna de data", colunas, index=0)
-    with col2:
-        colunas_restantes = [c for c in colunas if c != coluna_data]
-        coluna_valor = st.selectbox("Coluna de valor", colunas_restantes)
-
-    df_plot = df[[coluna_data, coluna_valor]].copy()
-    df_plot[coluna_data] = pd.to_datetime(df_plot[coluna_data], errors="coerce", dayfirst=True)
-    df_plot[coluna_valor] = pd.to_numeric(df_plot[coluna_valor], errors="coerce")
-    df_plot = df_plot.dropna(subset=[coluna_data, coluna_valor]).sort_values(coluna_data)
-
-    if df_plot.empty:
-        st.warning(
-            "Não consegui converter as colunas escolhidas em data/número. "
-            "Verifique se selecionou as colunas certas."
+    if COLUNA_DATA not in df.columns or COLUNA_VALOR not in df.columns:
+        st.error(
+            f"⚠️ Não encontrei as colunas '{COLUNA_DATA}' e/ou '{COLUNA_VALOR}' "
+            f"na aba '{NOME_ABA_GRAFICO}'. Colunas encontradas: {', '.join(df.columns)}"
         )
         return
 
-    st.line_chart(df_plot.set_index(coluna_data)[coluna_valor])
+    df_plot = df[[COLUNA_DATA, COLUNA_VALOR]].copy()
+    df_plot[COLUNA_DATA] = pd.to_datetime(df_plot[COLUNA_DATA], errors="coerce", dayfirst=True)
+    df_plot[COLUNA_VALOR] = pd.to_numeric(df_plot[COLUNA_VALOR], errors="coerce")
+    df_plot = df_plot.dropna(subset=[COLUNA_DATA, COLUNA_VALOR]).sort_values(COLUNA_DATA)
+
+    if df_plot.empty:
+        st.warning(
+            f"Não consegui converter as colunas '{COLUNA_DATA}'/'{COLUNA_VALOR}' "
+            "em data/número. Confira os valores na planilha."
+        )
+        return
+
+    st.line_chart(df_plot.set_index(COLUNA_DATA)[COLUNA_VALOR])
 
     with st.expander("Ver dados da planilha"):
-        st.dataframe(df, use_container_width=True)
+        aba_escolhida = st.radio(
+            "Aba", [NOME_ABA_GRAFICO, NOME_ABA_COMENTARIOS], horizontal=True
+        )
+
+        try:
+            df_aba = (
+                df if aba_escolhida == NOME_ABA_GRAFICO
+                else carregar_aba_por_nome(link, NOME_ABA_COMENTARIOS)
+            )
+        except ValueError as err:
+            st.error(f"⚠️ {err}")
+        else:
+            st.dataframe(df_aba, use_container_width=True)
 
 
 # =================================================
