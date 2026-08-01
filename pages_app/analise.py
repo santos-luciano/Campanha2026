@@ -92,15 +92,13 @@ def _aba_twitter():
         "atualizada diariamente."
     )
 
-    link_padrao = st.secrets.get("historico_twitter_sheet_url", "")
-    link = st.text_input(
-        "Link da planilha (Google Sheets)",
-        value=link_padrao,
-        placeholder="https://docs.google.com/spreadsheets/d/..."
-    )
+    link = st.secrets.get("historico_twitter_sheet_url", "")
 
     if not link.strip():
-        st.info("Cole o link da planilha do Google Sheets para carregar o histórico.")
+        st.warning(
+            "Nenhuma planilha configurada. Cadastre 'historico_twitter_sheet_url' "
+            "em Manage app → Settings → Secrets."
+        )
         return
 
     try:
