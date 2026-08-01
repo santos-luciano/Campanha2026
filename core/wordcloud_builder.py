@@ -123,10 +123,18 @@ def exibir_nuvem_palavras(
 
     st.subheader(titulo)
 
-    wc = gerar_nuvem_palavras(
-        comentarios,
-        palavras_ignoradas=palavras_ignoradas,
-        **kwargs,
+    # tuple() torna os argumentos hasheáveis, permitindo cachear com
+    # st.cache_data — sem isso, a nuvem seria recalculada em TODO rerun
+    # do Streamlit (qualquer clique/digitação na página), não só quando
+    # os comentários realmente mudam.
+    wc = _gerar_nuvem_com_cache(
+        tuple(str(c) for c in comentarios),
+        tuple(sorted(palavras_ignoradas)),
+        kwargs.get("freq_minima", 1),
+        kwargs.get("min_len", 2),
+        kwargs.get("max_palavras_frequencia", 100),
+        kwargs.get("max_palavras_nuvem", 150),
+        kwargs.get("remover_numeros", True),
     )
 
     if wc is None:
@@ -145,4 +153,27 @@ def exibir_nuvem_palavras(
         file_name=f"{nome_arquivo}.png",
         mime="image/png",
         key=f"download_{nome_arquivo}",
+    )
+
+
+@st.cache_data(show_spinner=False)
+def _gerar_nuvem_com_cache(
+    comentarios_tupla,
+    palavras_ignoradas_tupla,
+    freq_minima,
+    min_len,
+    max_palavras_frequencia,
+    max_palavras_nuvem,
+    remover_numeros,
+):
+    """Wrapper cacheado de gerar_nuvem_palavras — os argumentos precisam
+    ser hasheáveis (tuplas), por isso não recebe listas/Series direto."""
+    return gerar_nuvem_palavras(
+        list(comentarios_tupla),
+        palavras_ignoradas=list(palavras_ignoradas_tupla),
+        freq_minima=freq_minima,
+        min_len=min_len,
+        max_palavras_frequencia=max_palavras_frequencia,
+        max_palavras_nuvem=max_palavras_nuvem,
+        remover_numeros=remover_numeros,
     )
