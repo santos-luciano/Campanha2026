@@ -26,11 +26,22 @@ def carregar_e_normalizar(files):
 
 
 def _carregar_arquivo(f):
-    """Lê um único arquivo Excel e aplica a normalização de colunas
-    de acordo com o padrão de nome do arquivo."""
+    """
+    Lê um único arquivo Excel. Primeiro verifica se é o formato
+    "message" (export bruto, ex: Instagram) pela ASSINATURA DAS COLUNAS —
+    isso tem prioridade sobre qualquer heurística de nome de arquivo, que
+    pode ser ambígua (ex: nomes de arquivo que contêm 'exportcomments'
+    sem de fato ter as colunas Username/Display Name esperadas por esse
+    formato). Só cai na lógica antiga (baseada em nome de arquivo) se as
+    colunas não baterem com o formato "message".
+    """
+    df_bruto = pd.read_excel(f)
+
+    if COLUNAS_FORMATO_MENSAGEM.issubset(df_bruto.columns):
+        return _normalizar_formato_mensagem(df_bruto)
+
     if 'exportcomments' in f.name:
-        df = pd.read_excel(f)
-        df = df.rename(columns={
+        df = df_bruto.rename(columns={
             'Username': 'Name',
             "Display Name": "ProfileId",
         })
@@ -38,13 +49,11 @@ def _carregar_arquivo(f):
         df = df[['Name', 'ProfileId', "Comment", "Date", "Likes"]]
 
     elif 'list' in f.name:
-        df = pd.read_excel(f)
-        df = _garantir_likes(df)
+        df = _garantir_likes(df_bruto)
         df = df[['Name', 'ProfileId', "Comment", "Date", "Likes"]]
 
     elif 'jaques_wagner' in f.name:
-        df = pd.read_excel(f)
-        df = _garantir_likes(df)
+        df = _garantir_likes(df_bruto)
         df = df.rename(columns={
             'mes_ano': 'Date',
             "id": "ProfileId",
@@ -52,6 +61,7 @@ def _carregar_arquivo(f):
         df['Name'] = df['ProfileId']
 
     elif 'tweet' in f.name:
+        f.seek(0)
         df = pd.read_excel(f, skiprows=6)
         df = df.dropna(subset=['Unnamed: 0'])
         df = df.rename(columns={
@@ -62,19 +72,12 @@ def _carregar_arquivo(f):
         df = df[['Name', 'ProfileId', "Comment", "Date", "Likes"]]
 
     else:
-        # Não bateu com nenhum padrão de nome conhecido — tenta ler sem
-        # pular linhas e checar se é o formato "message" (export bruto
-        # do Instagram) antes de cair no formato antigo (skiprows=6).
-        df_bruto = pd.read_excel(f)
-
-        if COLUNAS_FORMATO_MENSAGEM.issubset(df_bruto.columns):
-            df = _normalizar_formato_mensagem(df_bruto)
-        else:
-            df = pd.read_excel(f, skiprows=6)
-            df = df.dropna(subset=['Unnamed: 0'])
-            df = df.rename(columns={'Profile ID': 'ProfileId'})
-            df = _garantir_likes(df)
-            df = df[['Name', 'ProfileId', "Comment", "Date", "Likes"]]
+        f.seek(0)
+        df = pd.read_excel(f, skiprows=6)
+        df = df.dropna(subset=['Unnamed: 0'])
+        df = df.rename(columns={'Profile ID': 'ProfileId'})
+        df = _garantir_likes(df)
+        df = df[['Name', 'ProfileId', "Comment", "Date", "Likes"]]
 
     return df
 
