@@ -54,13 +54,26 @@ def tela_principal():
         files = st.file_uploader(
             "Carregue arquivos Excel",
             type=["xlsx", "xls"],
-            accept_multiple_files=True
+            accept_multiple_files=True,
+            key="uploader_comentarios",
         )
 
-        if not files:
+        if files:
+            fingerprint = tuple((f.name, f.size) for f in files)
+            if fingerprint != st.session_state.get("upload_fingerprint"):
+                # Arquivo novo: recarrega os dados e descarta a classificação anterior
+                st.session_state.df_upload = carregar_e_normalizar(files)
+                st.session_state.upload_fingerprint = fingerprint
+                st.session_state.df_classificado = None
+                st.session_state.pop("df_resultado", None)
+                st.session_state.pop("df_resultado_hash", None)
+
+        df = st.session_state.get("df_upload")
+
+        if df is None:
+            st.info("Carregue um arquivo Excel para continuar.")
             st.stop()
 
-        df = carregar_e_normalizar(files)
         total_comentarios = df["Comment"].dropna().shape[0]
 
         _aba_classificacao_comentarios(df, total_comentarios)
