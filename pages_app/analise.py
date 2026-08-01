@@ -312,26 +312,26 @@ def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
 
     df_base = st.session_state.df_classificado
 
-    pipeline = SentimentAnalysisPipeline(
-        api_key=os.getenv("OPENAI_API_KEY"),
-        schema=schema_classifier_consolidado,
-        contexto=contexto
-    )
-
-    # Só refaz a análise de sentimento (chamada à IA) quando a classificação
-    # realmente mudou — evita reprocessar a cada interação na tela.
-    hash_atual = hash(tuple(df_base["classificacao"]))
-    if st.session_state.get("df_resultado_hash") != hash_atual:
-        with st.spinner("Atualizando análise de sentimento..."):
-            st.session_state.df_resultado = pipeline.run(df_base)
-        st.session_state.df_resultado_hash = hash_atual
-
-    df_resultado = st.session_state.df_resultado
-    resultado = df_resultado.iloc[0]
-
     percentuais = calcular_percentuais(df_base)
     est_pos, est_neu, est_neg = estimar_totais(percentuais, len(comentarios))
     total_validos = est_pos + est_neu + est_neg
+
+    hash_atual = hash(tuple(df_base["classificacao"]))
+    analise_desatualizada = st.session_state.get("df_resultado_hash") != hash_atual
+
+    if analise_desatualizada and "df_resultado" in st.session_state:
+        st.caption("⚠️ Você alterou classificações desde a última análise de sentimento.")
+
+    if st.button("📊 Analisar sentimentos"):
+        pipeline = SentimentAnalysisPipeline(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            schema=schema_classifier_consolidado,
+            contexto=contexto
+        )
+        with st.spinner("Analisando sentimentos..."):
+            st.session_state.df_resultado = pipeline.run(df_base)
+        st.session_state.df_resultado_hash = hash_atual
+        analise_desatualizada = False
 
     st.subheader("📊 Análise Geral")
     st.markdown("---")
@@ -354,20 +354,25 @@ def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
         )
         st.markdown("---")
 
-    topicos = resultado["main_topics"]
+    if "df_resultado" not in st.session_state:
+        st.info("Clique em '📊 Analisar sentimentos' para gerar os temas principais "
+                 "e os destaques por categoria.")
+    else:
+        resultado = st.session_state.df_resultado.iloc[0]
+        topicos = resultado["main_topics"]
 
-    st.markdown(
-        f"🧠 **Temas principais:** {' | '.join(t.capitalize() for t in topicos)}"
-    )
+        st.markdown(
+            f"🧠 **Temas principais:** {' | '.join(t.capitalize() for t in topicos)}"
+        )
 
-    st.markdown(f"🟢 **Comentários Positivos:** {est_pos} ({percentuais['p_pos']:.2%})")
-    st.markdown(resultado["review_comments_positives"] or "_Sem comentários positivos_")
+        st.markdown(f"🟢 **Comentários Positivos:** {est_pos} ({percentuais['p_pos']:.2%})")
+        st.markdown(resultado["review_comments_positives"] or "_Sem comentários positivos_")
 
-    st.markdown(f"🟡 **Comentários Neutros:** {est_neu} ({percentuais['p_neu']:.2%})")
-    st.markdown(resultado["review_comments_neutral"] or "_Sem comentários neutros_")
+        st.markdown(f"🟡 **Comentários Neutros:** {est_neu} ({percentuais['p_neu']:.2%})")
+        st.markdown(resultado["review_comments_neutral"] or "_Sem comentários neutros_")
 
-    st.markdown(f"🔴 **Comentários Negativos:** {est_neg} ({percentuais['p_neg']:.2%})")
-    st.markdown(resultado["review_comments_negative"] or "_Sem comentários negativos_")
+        st.markdown(f"🔴 **Comentários Negativos:** {est_neg} ({percentuais['p_neg']:.2%})")
+        st.markdown(resultado["review_comments_negative"] or "_Sem comentários negativos_")
 
     st.subheader("👍 Comentários mais curtidos")
 
