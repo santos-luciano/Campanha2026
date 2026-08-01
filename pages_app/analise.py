@@ -247,10 +247,6 @@ def _aba_capturar_comentarios():
 # PÁGINA — CLASSIFICAÇÃO DE COMENTÁRIOS
 # =================================================
 def _aba_classificacao_comentarios(df, total_comentarios):
-    
-
-    
-    
 
 #    opcao = st.radio(
 #        "Escolha a classificação:",
@@ -288,7 +284,7 @@ def _aba_classificacao_comentarios(df, total_comentarios):
     )
 
     st.subheader("Classificação dos Comentários")
-    
+
     contexto = st.text_area(
         "Contexto da classificação",
         placeholder="Ex: Comentários sobre investimentos em saúde na Bahia feitos por políticos"
@@ -303,8 +299,21 @@ def _aba_classificacao_comentarios(df, total_comentarios):
             contexto=contexto
         )
 
-        with st.spinner("Classificando comentários..."):
-            resultado = classifier.classify(comentarios1)
+        barra_progresso = st.progress(0.0)
+        texto_status = st.empty()
+
+        def _atualizar_progresso(lote_atual, total_lotes, mensagem):
+            barra_progresso.progress(lote_atual / total_lotes)
+            texto_status.info(f"⏳ {mensagem}")
+
+
+#        with st.spinner("Classificando comentários..."):
+#        resultado = classifier.classify(comentarios1)
+ 
+        resultado = classifier.classify(comentarios1, on_progress=_atualizar_progresso)
+ 
+        barra_progresso.empty()
+        texto_status.empty()
 
         df_classificado_1 = pd.DataFrame(resultado["respostas"])
 

@@ -74,25 +74,37 @@ class CommentClassifier:
 
         return prompt
 
-    def classify(self, comments: List[str]) -> dict:
+    def classify(self, comments: List[str], on_progress=None) -> dict:
+        """
+        Classifica os comentários em lotes.
+
+        `on_progress`, se passado, é chamado a cada lote como
+        on_progress(lote_atual, total_lotes, mensagem) — útil pra
+        mostrar progresso numa interface (ex: Streamlit), em vez de
+        só imprimir no console.
+        """
         resultados = []
-    
+
         total_batches = (len(comments) + self.batch_size - 1) // self.batch_size
-    
+
         for batch_idx, i in enumerate(
             range(0, len(comments), self.batch_size),
             start=1
         ):
             batch = comments[i:i + self.batch_size]
-    
-            print(
-                f"[{datetime.now().strftime('%H:%M:%S')}] "
+
+            mensagem = (
                 f"Processando lote {batch_idx}/{total_batches} "
                 f"(comentários {i + 1}–{i + len(batch)})"
             )
-    
+
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] {mensagem}")
+
+            if on_progress:
+                on_progress(batch_idx, total_batches, mensagem)
+
             prompt = self._build_prompt(batch)
-    
+
             completion = self.client.chat.completions.create(
                 model=self.model,
 #                temperature=0.0,
@@ -107,6 +119,6 @@ class CommentClassifier:
             resposta = json.loads(
                 completion.choices[0].message.content
             )
-    
+
             resultados.extend(resposta["respostas"])
         return {"respostas": resultados}
