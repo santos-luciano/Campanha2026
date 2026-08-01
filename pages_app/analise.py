@@ -1,3 +1,4 @@
+import io
 import os
 import random
 
@@ -9,8 +10,10 @@ from config.schema_classifier import schema_classifier_consolidado
 from core.classificar_sentimentos import SentimentAnalysisPipeline
 from core.classifier_legend import CaptionClassifier
 from core.comment_classifier import CommentClassifier
-from utils.excel_loader import carregar_e_normalizar  # troca o import do google_sheets
-from utils.local_data_loader import carregar_planilha_local
+from core.exportcomments_client import extrair_comentarios, ExportCommentsError
+
+from utils.excel_loader import carregar_e_normalizar
+from utils.google_sheets import carregar_planilha_google
 from utils.metrics import (
     marcar_mencao_projeto,
     contar_duplicados,
@@ -33,13 +36,20 @@ def tela_principal():
     st.sidebar.markdown("---")
     pagina = st.sidebar.radio(
         "Menu",
-        ["Classificador de legendas", "🤖 Classificação", "🐦 Twitter"]
+        [
+            "Classificador de legendas",
+            "🤖 Classificação",
+            "🐦 Twitter",
+            "📥 Capturar comentários",
+        ]
     )
 
     if pagina == "Classificador de legendas":
         _aba_classificador_legendas()
     elif pagina == "🐦 Twitter":
         _aba_twitter()
+    elif pagina == "📥 Capturar comentários":
+        _aba_capturar_comentarios()
     else:
         files = st.file_uploader(
             "Carregue arquivos Excel",
@@ -75,15 +85,27 @@ def _aba_classificador_legendas():
 # =================================================
 # PÁGINA — HISTÓRICO TWITTER / X
 # =================================================
-
-
 def _aba_twitter():
     st.subheader("📈 Histórico Twitter/X")
-    st.caption("Gráfico de evolução a partir dos dados salvos em data/arquivo.xlsx")
+    st.caption(
+        "Gráfico de evolução a partir de uma planilha do Google Sheets, "
+        "atualizada diariamente."
+    )
+
+    link_padrao = st.secrets.get("historico_twitter_sheet_url", "")
+    link = st.text_input(
+        "Link da planilha (Google Sheets)",
+        value=link_padrao,
+        placeholder="https://docs.google.com/spreadsheets/d/..."
+    )
+
+    if not link.strip():
+        st.info("Cole o link da planilha do Google Sheets para carregar o histórico.")
+        return
 
     try:
-        df = carregar_planilha_local("data/twitter.xlsx")
-    except FileNotFoundError as err:
+        df = carregar_planilha_google(link)
+    except ValueError as err:
         st.error(f"⚠️ {err}")
         return
 
@@ -116,6 +138,73 @@ def _aba_twitter():
 
     with st.expander("Ver dados da planilha"):
         st.dataframe(df, use_container_width=True)
+
+
+# =================================================
+# PÁGINA — CAPTURAR COMENTÁRIOS (ExportComments)
+# =================================================
+def _aba_capturar_comentarios():
+    st.subheader("📥 Capturar comentários")
+    st.caption(
+        "Extrai comentários de um post (Instagram/Facebook/etc.) via "
+        "ExportComments.com, sem precisar exportar manualmente."
+    )
+
+    url_post = st.text_input("Link do post", placeholder="https://www.instagram.com/p/...")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        limite = st.number_input(
+            "Limite de comentários", min_value=10, max_value=5000, value=500, step=50
+        )
+    with col2:
+        incluir_respostas = st.checkbox("Incluir respostas", value=True)
+
+    if st.button("Capturar comentários"):
+        if not url_post.strip():
+            st.warning("Cole o link do post.")
+        else:
+            status_box = st.empty()
+
+            def atualizar_status(msg):
+                status_box.info(f"⏳ {msg}")
+
+            try:
+                dados = extrair_comentarios(
+                    url_post,
+                    limite=int(limite),
+                    incluir_respostas=incluir_respostas,
+                    on_status=atualizar_status,
+                )
+                status_box.empty()
+                st.session_state.df_capturado = pd.DataFrame(dados)
+                st.success(f"✅ {len(dados)} comentários capturados.")
+            except ExportCommentsError as err:
+                status_box.empty()
+                st.error(f"⚠️ {err}")
+
+    df_capturado = st.session_state.get("df_capturado")
+
+    if df_capturado is not None and not df_capturado.empty:
+        st.dataframe(df_capturado, use_container_width=True)
+
+        buffer = io.BytesIO()
+        df_capturado.to_excel(buffer, index=False)
+        st.download_button(
+            "⬇️ Baixar comentários (Excel)",
+            data=buffer.getvalue(),
+            file_name="comentarios_exportcomments.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        st.caption(
+            "O nome do arquivo já contém 'exportcomments', então a aba 🤖 "
+            "Classificação vai tentar aplicar a mesma normalização de colunas "
+            "usada para arquivos exportados manualmente. Confira se os nomes "
+            "de coluna batem (Name, ProfileId, Comment, Date, Likes) antes de "
+            "carregar lá — a API pode retornar nomes diferentes."
+        )
+
+
 # =================================================
 # PÁGINA — CLASSIFICAÇÃO DE COMENTÁRIOS
 # =================================================
