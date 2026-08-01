@@ -44,18 +44,18 @@ def tela_principal():
     pagina = st.sidebar.radio(
         "Menu",
         [
-            "🤖 Classificação",
+            "Classificação de comentários",
             "Classificador de legendas",
-            "🐦 Twitter",
-            "📥 Extração de comentários",
+            "Twitter",
+            "Extração de comentários",
         ]
     )
 
     if pagina == "Classificador de legendas":
         _aba_classificador_legendas()
-    elif pagina == "🐦 Twitter":
+    elif pagina == "Twitter/X":
         _aba_twitter()
-    elif pagina == "📥 Extração de comentários":
+    elif pagina == "Extração de comentários":
         _aba_capturar_comentarios()
     else:
         files = st.file_uploader(
@@ -112,7 +112,7 @@ COLUNA_VALOR = "Menções a Jaques Wagner"
 
 
 def _aba_twitter():
-    st.subheader("📈 Histórico Twitter/X")
+    st.subheader("Histórico Twitter/X")
     st.caption(
         f"Evolução de {COLUNA_VALOR.lower()} ao longo do tempo, "
         f"a partir da aba '{NOME_ABA_GRAFICO}' da planilha (atualizada diariamente)."
@@ -180,7 +180,7 @@ def _aba_twitter():
 # PÁGINA — CAPTURAR COMENTÁRIOS (ExportComments)
 # =================================================
 def _aba_capturar_comentarios():
-    st.subheader("📥 Extração de comentários")
+    st.subheader("Extração de comentários")
     st.caption(
         "Extrai comentários de um post (Instagram/Facebook/etc.) via "
         "ExportComments.com, sem precisar exportar manualmente."
@@ -252,19 +252,21 @@ def _aba_classificacao_comentarios(df, total_comentarios):
         placeholder="Ex: Comentários sobre investimentos em saúde na Bahia feitos por políticos"
     )
 
-    opcao = st.radio(
-        "Escolha a classificação:",
-        ["Jaques Wagner", "Camaçari"]
-    )
+#    opcao = st.radio(
+#        "Escolha a classificação:",
+#        ["Jaques Wagner", "Camaçari"]
+#    )
 
-    duplicados = 0
+#    duplicados = 0
 
-    if opcao == "Jaques Wagner":
-        df = marcar_mencao_projeto(df)
-        duplicados = contar_duplicados(df)
-        comentarios_df = filtrar_comentarios_validos(df)
-    else:
-        comentarios_df = df
+#    if opcao == "Jaques Wagner":
+#        df = marcar_mencao_projeto(df)
+#        duplicados = contar_duplicados(df)
+#        comentarios_df = filtrar_comentarios_validos(df)
+#    else:
+#        comentarios_df = df
+
+    comentarios_df = filtrar_comentarios_validos(df)
 
     comentarios = (
         comentarios_df["Comment"]
@@ -363,23 +365,23 @@ def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
         st.subheader("📊 Análise Geral")
         st.markdown("---")
 
-        if opcao == "Jaques Wagner":
-            mencoes_pl = df['menciona_projeto'].sum() + n_projetos
-
-            st.markdown(f"**💬 Total de comentários:** {total_comentarios}")
-            st.markdown(
-                f"**📌 Menções a PLs/PECs:** {mencoes_pl} "
-                f"({mencoes_pl/total_comentarios:.2%})"
-            )
-            st.markdown(
-                f"**🔁 Comentários repetidos (mesmo autor):** {duplicados} "
-                f"({duplicados/total_comentarios:.2%})"
-            )
-            st.markdown(
-                f"**✅ Comentários válidos:** {total_validos} "
-                f"({total_validos/total_comentarios:.2%})"
-            )
-            st.markdown("---")
+#        if opcao == "Jaques Wagner":
+#            mencoes_pl = df['menciona_projeto'].sum() + n_projetos
+#
+#            st.markdown(f"**💬 Total de comentários:** {total_comentarios}")
+#            st.markdown(
+#                f"**📌 Menções a PLs/PECs:** {mencoes_pl} "
+#                f"({mencoes_pl/total_comentarios:.2%})"
+#            )
+#            st.markdown(
+#                f"**🔁 Comentários repetidos (mesmo autor):** {duplicados} "
+#                f"({duplicados/total_comentarios:.2%})"
+#            )
+#            st.markdown(
+#                f"**✅ Comentários válidos:** {total_validos} "
+#                f"({total_validos/total_comentarios:.2%})"
+#            )
+#            st.markdown("---")
 
         resultado = st.session_state.df_resultado.iloc[0]
         topicos = resultado["main_topics"]
