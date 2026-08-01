@@ -22,7 +22,7 @@ def filtrar_comentarios_validos(df):
     """Remove comentários que mencionam PL/PEC e duplicados,
     mantendo o de maior número de likes em cada grupo."""
 #    comentarios_df = df[~df['menciona_projeto']].copy()
-    comentarios_df = comentarios_df.dropna(subset=["Comment"])
+    comentarios_df = df.dropna(subset=["Comment"])
     comentarios_df = (
         comentarios_df
         .sort_values(by="Likes", ascending=False)
