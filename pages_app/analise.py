@@ -305,10 +305,6 @@ def _aba_classificacao_comentarios(df, total_comentarios):
         def _atualizar_progresso(lote_atual, total_lotes, mensagem):
             barra_progresso.progress(lote_atual / total_lotes)
             texto_status.info(f"⏳ {mensagem}")
-
-
-#        with st.spinner("Classificando comentários..."):
-#        resultado = classifier.classify(comentarios1)
  
         resultado = classifier.classify(comentarios1, on_progress=_atualizar_progresso)
  
