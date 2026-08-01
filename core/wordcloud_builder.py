@@ -1,13 +1,45 @@
+import io
+
 import numpy as np
+import streamlit as st
 from wordcloud import WordCloud
 
 from core.text_cleaner import TextCleaner
 from core.text_analyzer import TextAnalyzer
 
+# Stopwords genéricas (links, termos institucionais, lixo de URL) que
+# atrapalham qualquer nuvem de comentário de rede social. Cada aba pode
+# somar palavras específicas do próprio contexto por cima dessa lista.
+STOPWORDS_PADRAO = [
+    'https', 'jaques', 'pra', 'wagner', 'so', 'oficial', 'nao',
+    'oficialcaetano', 'laisa', 'figueiredo', 'prefeito', 'caetano',
+    'igsh', 'www', 'mwjjztdootvlmhhwnq', 'instagram', 'facebook',
+    'set', 'php', 'type', 'fbid', 'time', 'photo', 'jaqueswagner',
+    'co', 'ja', 'vai', 'camacari',
+]
 
-def gerar_nuvem_palavras(comentarios, palavras_ignoradas=None, freq_minima=3):
+
+def gerar_nuvem_palavras(
+    comentarios,
+    palavras_ignoradas=None,
+    freq_minima=1,
+    min_len=2,
+    max_palavras_frequencia=100,
+    max_palavras_nuvem=150,
+    remover_numeros=True,
+):
     """
     Gera uma WordCloud (formato oval) a partir de uma série/lista de comentários.
+
+    Parâmetros:
+    - palavras_ignoradas: lista extra de stopwords (some com STOPWORDS_PADRAO
+      se você passar `palavras_ignoradas=STOPWORDS_PADRAO + [...]`).
+    - freq_minima: frequência mínima da palavra para entrar na nuvem.
+    - min_len: tamanho mínimo da palavra (usado na limpeza do texto).
+    - max_palavras_frequencia: quantas palavras (as mais frequentes) considerar
+      antes de desenhar a nuvem.
+    - max_palavras_nuvem: limite repassado ao WordCloud (max_words).
+    - remover_numeros: descarta tokens que são só dígitos (ex: "2024").
 
     Retorna o objeto WordCloud pronto (use .to_array() para exibir em Streamlit
     ou .to_image() para salvar/baixar), ou None se não houver palavras
@@ -15,12 +47,17 @@ def gerar_nuvem_palavras(comentarios, palavras_ignoradas=None, freq_minima=3):
     """
     palavras_ignoradas = [p.lower() for p in (palavras_ignoradas or [])]
 
-    cleaner = TextCleaner(min_len=3)
+    cleaner = TextCleaner(min_len=min_len)
     analyzer = TextAnalyzer(cleaner)
 
     df_freq = analyzer.word_frequency(comentarios)
     df_freq = df_freq[df_freq['frequencia'] >= freq_minima]
+
+    if remover_numeros:
+        df_freq = df_freq[~df_freq['palavra'].str.fullmatch(r'\d+')]
+
     df_freq = df_freq[~df_freq['palavra'].str.lower().isin(palavras_ignoradas)]
+    df_freq = df_freq.head(max_palavras_frequencia)
 
     freq_dict = dict(zip(df_freq['palavra'], df_freq['frequencia']))
 
@@ -37,9 +74,60 @@ def gerar_nuvem_palavras(comentarios, palavras_ignoradas=None, freq_minima=3):
         height=500,
         background_color=None,
         mode='RGBA',
-        max_words=150,
+        max_words=max_palavras_nuvem,
         mask=mask.astype(np.uint8),
         contour_width=0,
     ).generate_from_frequencies(freq_dict)
 
     return wc
+
+
+def exibir_nuvem_palavras(
+    comentarios,
+    titulo="☁️ Nuvem de Palavras",
+    nome_arquivo="nuvem_palavras",
+    palavras_extra_ignoradas=None,
+    **kwargs,
+):
+    """
+    Helper de UI: gera a nuvem (usando STOPWORDS_PADRAO + palavras_extra_ignoradas)
+    e já cuida de exibir na tela + botão de download em PNG.
+
+    Chame isso direto de qualquer aba, por exemplo:
+
+        exibir_nuvem_palavras(
+            df["Comment"],
+            titulo="☁️ Nuvem de Palavras - Comentários",
+            nome_arquivo="nuvem_comentarios",
+            palavras_extra_ignoradas=["algumapalavra"],
+        )
+
+    Qualquer parâmetro extra (freq_minima, min_len, etc.) é repassado
+    direto para gerar_nuvem_palavras.
+    """
+    palavras_ignoradas = STOPWORDS_PADRAO + list(palavras_extra_ignoradas or [])
+
+    st.subheader(titulo)
+
+    wc = gerar_nuvem_palavras(
+        comentarios,
+        palavras_ignoradas=palavras_ignoradas,
+        **kwargs,
+    )
+
+    if wc is None:
+        st.info("Não há palavras suficientes para gerar a nuvem com os filtros atuais.")
+        return
+
+    st.image(wc.to_array(), use_container_width=True)
+
+    buffer = io.BytesIO()
+    wc.to_image().save(buffer, format="PNG")
+    st.download_button(
+        "⬇️ Baixar nuvem de palavras (PNG)",
+        data=buffer.getvalue(),
+        file_name=f"{nome_arquivo}.png",
+        mime="image/png",
+        key=f"download_{nome_arquivo}",
+    )
+    
