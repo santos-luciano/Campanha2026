@@ -2,6 +2,7 @@ import io
 
 import nltk
 import numpy as np
+import pandas as pd
 import streamlit as st
 from wordcloud import WordCloud
 
@@ -61,7 +62,13 @@ def gerar_nuvem_palavras(
     cleaner = TextCleaner(min_len=min_len)
     analyzer = TextAnalyzer(cleaner)
 
-    df_freq = analyzer.word_frequency(comentarios)
+    # TextAnalyzer.extract_words espera uma Series (usa .dropna()) — aceita
+    # tanto uma Series quanto uma lista/tupla aqui, convertendo se preciso.
+    comentarios_series = (
+        comentarios if isinstance(comentarios, pd.Series) else pd.Series(comentarios)
+    )
+
+    df_freq = analyzer.word_frequency(comentarios_series)
     df_freq = df_freq[df_freq['frequencia'] >= freq_minima]
 
     if remover_numeros:
