@@ -133,7 +133,9 @@ def exibir_nuvem_palavras(
         st.info("Não há palavras suficientes para gerar a nuvem com os filtros atuais.")
         return
 
-    st.image(wc.to_array(), width=largura_exibicao)
+    col_esquerda, col_centro, col_direita = st.columns([1, 2, 1])
+    with col_centro:
+        st.image(wc.to_array(), width=largura_exibicao)
 
     buffer = io.BytesIO()
     wc.to_image().save(buffer, format="PNG")
