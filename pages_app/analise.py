@@ -12,6 +12,7 @@ from core.classificar_sentimentos import SentimentAnalysisPipeline
 from core.classifier_legend import CaptionClassifier
 from core.comment_classifier import CommentClassifier
 from core.exportcomments_client import extrair_comentarios, ExportCommentsError
+from core.wordcloud_builder import exibir_nuvem_palavras
 
 from utils.excel_loader import carregar_e_normalizar
 from utils.google_sheets import carregar_aba_por_nome
