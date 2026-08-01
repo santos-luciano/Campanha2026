@@ -282,7 +282,13 @@ def _aba_classificacao_comentarios(df, total_comentarios):
         else comentarios
     )
 
-    n_projetos = 0
+    exibir_nuvem_palavras(
+    comentarios["Comment"],
+    titulo="☁️ Nuvem de Palavras — Comentários",
+    nome_arquivo="nuvem_comentarios",
+    )
+
+#    n_projetos = 0
 
     if st.button("Classificar comentários"):
         classifier = CommentClassifier(
