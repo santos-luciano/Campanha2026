@@ -284,7 +284,7 @@ def _aba_classificacao_comentarios(df, total_comentarios):
     )
 
     exibir_nuvem_palavras(
-    comentarios["Comment"],
+    comentarios_df["Comment"],
     titulo="☁️ Nuvem de Palavras — Comentários",
     nome_arquivo="nuvem_comentarios",
     )
