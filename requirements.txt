@@ -9,4 +9,3 @@ wordcloud
 unidecode
 nltk
 requests
-locale
