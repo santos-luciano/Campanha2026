@@ -1,5 +1,11 @@
 import pandas as pd
 
+# Colunas que identificam o export "bruto" de comentários do Instagram
+# (id, shortcode, username, name, time, likes, comment_id, message,
+# sentiment, profile_id, ...). Detectamos pelo conjunto de colunas, não
+# pelo nome do arquivo, já que esse nome pode variar.
+COLUNAS_FORMATO_MENSAGEM = {'username', 'profile_id', 'message', 'time'}
+
 
 def carregar_e_normalizar(files):
     """
@@ -56,11 +62,43 @@ def _carregar_arquivo(f):
         df = df[['Name', 'ProfileId', "Comment", "Date", "Likes"]]
 
     else:
-        df = pd.read_excel(f, skiprows=6)
-        df = df.dropna(subset=['Unnamed: 0'])
-        df = df.rename(columns={'Profile ID': 'ProfileId'})
-        df = _garantir_likes(df)
-        df = df[['Name', 'ProfileId', "Comment", "Date", "Likes"]]
+        # Não bateu com nenhum padrão de nome conhecido — tenta ler sem
+        # pular linhas e checar se é o formato "message" (export bruto
+        # do Instagram) antes de cair no formato antigo (skiprows=6).
+        df_bruto = pd.read_excel(f)
+
+        if COLUNAS_FORMATO_MENSAGEM.issubset(df_bruto.columns):
+            df = _normalizar_formato_mensagem(df_bruto)
+        else:
+            df = pd.read_excel(f, skiprows=6)
+            df = df.dropna(subset=['Unnamed: 0'])
+            df = df.rename(columns={'Profile ID': 'ProfileId'})
+            df = _garantir_likes(df)
+            df = df[['Name', 'ProfileId', "Comment", "Date", "Likes"]]
+
+    return df
+
+
+def _normalizar_formato_mensagem(df):
+    """
+    Normaliza o export "bruto" de comentários (colunas: username,
+    profile_id, message, time, likes, ...) — comum em exports diretos
+    do Instagram com id, shortcode, sentiment, media_id etc.
+    """
+    df = df.rename(columns={
+        'username': 'Name',
+        'profile_id': 'ProfileId',
+        'message': 'Comment',
+        'time': 'Date',
+        'likes': 'Likes',
+    })
+
+    # 'time' costuma vir como timestamp Unix (segundos) — converte para
+    # data/hora de verdade. Se não vier nesse formato, cai em NaT.
+    df['Date'] = pd.to_datetime(df['Date'], unit='s', errors='coerce')
+
+    df = _garantir_likes(df)
+    df = df[['Name', 'ProfileId', "Comment", "Date", "Likes"]]
 
     return df
 
