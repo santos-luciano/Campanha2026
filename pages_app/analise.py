@@ -1,7 +1,6 @@
 import io
 import os
 import random
-import locale
 
 
 import pandas as pd
@@ -25,10 +24,11 @@ from utils.metrics import (
     estimar_totais,
 )
 
-try:
-    locale.setlocale(locale.LC_TIME, "pt_BR.UTF-8")
-except locale.Error:
-    locale.setlocale(locale.LC_TIME, "Portuguese_Brazil")  
+MESES_PT = {
+    1: "jan", 2: "fev", 3: "mar", 4: "abr",
+    5: "mai", 6: "jun", 7: "jul", 8: "ago",
+    9: "set", 10: "out", 11: "nov", 12: "dez",
+}
 
 
 def tela_principal():
@@ -145,12 +145,18 @@ def _aba_twitter():
     df_plot[COLUNA_VALOR] = pd.to_numeric(df_plot[COLUNA_VALOR], errors="coerce")
     df_plot = df_plot.dropna(subset=[COLUNA_DATA, COLUNA_VALOR]).sort_values(COLUNA_DATA)
 
+    
+
+
     if df_plot.empty:
         st.warning(
             f"Não consegui converter as colunas '{COLUNA_DATA}'/'{COLUNA_VALOR}' "
             "em data/número. Confira os valores na planilha."
         )
         return
+    else:
+        df_plot[COLUNA_DATA] = df_plot[COLUNA_DATA].apply(
+        lambda d: f"{d.day:02d} {MESES_PT[d.month]}")
 
     st.line_chart(df_plot.set_index(COLUNA_DATA)[COLUNA_VALOR])
 
