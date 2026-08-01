@@ -98,6 +98,7 @@ def exibir_nuvem_palavras(
     titulo="☁️ Nuvem de Palavras",
     nome_arquivo="nuvem_palavras",
     palavras_extra_ignoradas=None,
+    largura_exibicao=600,
     **kwargs,
 ):
     """
@@ -113,6 +114,8 @@ def exibir_nuvem_palavras(
             palavras_extra_ignoradas=["algumapalavra"],
         )
 
+    `largura_exibicao` controla o tamanho (em pixels) mostrado na tela —
+    a imagem baixada em PNG mantém a resolução completa, independente disso.
     Qualquer parâmetro extra (freq_minima, min_len, etc.) é repassado
     direto para gerar_nuvem_palavras.
     """
@@ -130,7 +133,7 @@ def exibir_nuvem_palavras(
         st.info("Não há palavras suficientes para gerar a nuvem com os filtros atuais.")
         return
 
-    st.image(wc.to_array(), use_container_width=True)
+    st.image(wc.to_array(), width=largura_exibicao)
 
     buffer = io.BytesIO()
     wc.to_image().save(buffer, format="PNG")

@@ -247,7 +247,17 @@ def _aba_capturar_comentarios():
 # PÁGINA — CLASSIFICAÇÃO DE COMENTÁRIOS
 # =================================================
 def _aba_classificacao_comentarios(df, total_comentarios):
+    
+    exibir_nuvem_palavras(
+    comentarios_df["Comment"],
+    titulo="☁️ Nuvem de Palavras — Comentários",
+    nome_arquivo="nuvem_comentarios",
+    )
+
+    
     st.subheader("Classificação dos Comentários")
+
+
 
     contexto = st.text_area(
         "Contexto da classificação",
@@ -283,11 +293,6 @@ def _aba_classificacao_comentarios(df, total_comentarios):
         else comentarios
     )
 
-    exibir_nuvem_palavras(
-    comentarios_df["Comment"],
-    titulo="☁️ Nuvem de Palavras — Comentários",
-    nome_arquivo="nuvem_comentarios",
-    )
 
 #    n_projetos = 0
 
