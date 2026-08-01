@@ -1,6 +1,8 @@
 import io
 import os
 import random
+import locale
+
 
 import pandas as pd
 import streamlit as st
@@ -23,6 +25,11 @@ from utils.metrics import (
     estimar_totais,
 )
 
+try:
+    locale.setlocale(locale.LC_TIME, "pt_BR.UTF-8")
+except locale.Error:
+    locale.setlocale(locale.LC_TIME, "Portuguese_Brazil")  
+
 
 def tela_principal():
     st.sidebar.write(f"👤 Logado como: **{st.session_state.usuario}**")
@@ -37,10 +44,10 @@ def tela_principal():
     pagina = st.sidebar.radio(
         "Menu",
         [
-            "Classificador de legendas",
             "🤖 Classificação",
+            "Classificador de legendas",
             "🐦 Twitter",
-            "📥 Capturar comentários",
+            "📥 Extração de comentários",
         ]
     )
 
@@ -48,7 +55,7 @@ def tela_principal():
         _aba_classificador_legendas()
     elif pagina == "🐦 Twitter":
         _aba_twitter()
-    elif pagina == "📥 Capturar comentários":
+    elif pagina == "📥 Extração de comentários":
         _aba_capturar_comentarios()
     else:
         files = st.file_uploader(
@@ -167,7 +174,7 @@ def _aba_twitter():
 # PÁGINA — CAPTURAR COMENTÁRIOS (ExportComments)
 # =================================================
 def _aba_capturar_comentarios():
-    st.subheader("📥 Capturar comentários")
+    st.subheader("📥 Extração de comentários")
     st.caption(
         "Extrai comentários de um post (Instagram/Facebook/etc.) via "
         "ExportComments.com, sem precisar exportar manualmente."
