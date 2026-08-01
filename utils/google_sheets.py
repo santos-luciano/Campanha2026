@@ -19,25 +19,53 @@ def _extrair_gid(link):
     return match.group(1) if match else "0"
 
 
+def _eh_link_publicado(link):
+    return "/d/e/" in link
+
+
+def _extrair_id_publicado(link):
+    match = re.search(r"/d/e/([a-zA-Z0-9-_]+)", link)
+    if not match:
+        raise ValueError("Não encontrei o ID da planilha publicada na URL.")
+    return match.group(1)
+
+
+def _montar_csv_url(link):
+    if _eh_link_publicado(link):
+        pub_id = _extrair_id_publicado(link)
+        return f"https://docs.google.com/spreadsheets/d/e/{pub_id}/pub?output=csv"
+
+    sheet_id = _extrair_sheet_id(link)
+    gid = _extrair_gid(link)
+    return f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+
+
+def _montar_csv_url_sem_gid(link):
+    sheet_id = _extrair_sheet_id(link)
+    return f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+
+
 def carregar_planilha_google(link):
     """
     Carrega uma planilha pública do Google Sheets (compartilhada como
-    "Qualquer pessoa com o link pode visualizar") a partir do link normal
+    "Qualquer pessoa com o link pode visualizar", ou publicada via
+    Arquivo → Compartilhar → Publicar na web) a partir do link normal
     do navegador, retornando um DataFrame.
-
-    Funciona convertendo o link em uma URL de exportação CSV do Google Sheets.
     """
-    sheet_id = _extrair_sheet_id(link)
-    gid = _extrair_gid(link)
-
-    csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
-
+    csv_url = _montar_csv_url(link)
     resp = requests.get(csv_url, allow_redirects=True)
+
+    # Se o gid da URL não existir na planilha, o Google responde 400.
+    # Tenta de novo sem o gid, pegando a primeira aba.
+    if resp.status_code == 400 and not _eh_link_publicado(link):
+        csv_url = _montar_csv_url_sem_gid(link)
+        resp = requests.get(csv_url, allow_redirects=True)
 
     if resp.status_code != 200:
         raise ValueError(
             f"Não consegui acessar a planilha (status {resp.status_code}). "
-            "Confira se o link está correto."
+            f"URL testada: {csv_url}. Confira se o link está correto e se a "
+            "aba referenciada ainda existe."
         )
 
     content_type = resp.headers.get("Content-Type", "")
