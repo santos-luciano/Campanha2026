@@ -304,14 +304,14 @@ def _aba_classificacao_comentarios(df, total_comentarios):
 
     if st.session_state.df_classificado is not None:
         _exibir_resultados(
-            df, total_comentarios, opcao, duplicados, n_projetos,
+            df,
             comentarios, contexto
         )
 
 
 #def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
 #                        comentarios, contexto):
-def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
+def _exibir_resultados(df,
                         comentarios, contexto):
 
     st.markdown("**✏️ Classificação dos comentários** — clique em uma célula da coluna "
