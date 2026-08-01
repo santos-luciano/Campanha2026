@@ -283,10 +283,25 @@ def _aba_classificacao_comentarios(df, total_comentarios):
 
 def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
                         comentarios, contexto):
-    st.dataframe(
+    st.markdown("**✏️ Classificação dos comentários** — clique em uma célula da coluna "
+                "*classificacao* para corrigir manualmente, se necessário.")
+
+    df_editado = st.data_editor(
         st.session_state.df_classificado,
-        use_container_width=True
+        column_config={
+            "classificacao": st.column_config.SelectboxColumn(
+                "classificacao",
+                options=["positivo", "negativo", "neutro"],
+                required=True,
+            )
+        },
+        disabled=[c for c in st.session_state.df_classificado.columns if c != "classificacao"],
+        use_container_width=True,
+        key="editor_classificacao",
     )
+
+    if not df_editado.equals(st.session_state.df_classificado):
+        st.session_state.df_classificado = df_editado
 
     top5 = (
         df
@@ -303,10 +318,15 @@ def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
         contexto=contexto
     )
 
-    if "df_resultado" not in st.session_state:
-        st.session_state.df_resultado = pipeline.run(df_base)
+    # Só refaz a análise de sentimento (chamada à IA) quando a classificação
+    # realmente mudou — evita reprocessar a cada interação na tela.
+    hash_atual = hash(tuple(df_base["classificacao"]))
+    if st.session_state.get("df_resultado_hash") != hash_atual:
+        with st.spinner("Atualizando análise de sentimento..."):
+            st.session_state.df_resultado = pipeline.run(df_base)
+        st.session_state.df_resultado_hash = hash_atual
 
-    df_resultado = pipeline.run(df_base)
+    df_resultado = st.session_state.df_resultado
     resultado = df_resultado.iloc[0]
 
     percentuais = calcular_percentuais(df_base)
