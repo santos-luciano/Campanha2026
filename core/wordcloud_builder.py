@@ -1,11 +1,21 @@
 import io
 
+import nltk
 import numpy as np
 import streamlit as st
 from wordcloud import WordCloud
 
 from core.text_cleaner import TextCleaner
 from core.text_analyzer import TextAnalyzer
+
+
+def _garantir_stopwords_nltk():
+    """O TextCleaner depende do corpus 'stopwords' do NLTK, que não vem
+    pré-instalado no Streamlit Cloud — baixa sob demanda, uma vez só."""
+    try:
+        nltk.data.find("corpora/stopwords")
+    except LookupError:
+        nltk.download("stopwords", quiet=True)
 
 # Stopwords genéricas (links, termos institucionais, lixo de URL) que
 # atrapalham qualquer nuvem de comentário de rede social. Cada aba pode
@@ -47,6 +57,7 @@ def gerar_nuvem_palavras(
     """
     palavras_ignoradas = [p.lower() for p in (palavras_ignoradas or [])]
 
+    _garantir_stopwords_nltk()
     cleaner = TextCleaner(min_len=min_len)
     analyzer = TextAnalyzer(cleaner)
 
@@ -130,4 +141,3 @@ def exibir_nuvem_palavras(
         mime="image/png",
         key=f"download_{nome_arquivo}",
     )
-    
