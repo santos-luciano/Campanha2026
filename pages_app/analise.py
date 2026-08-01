@@ -45,9 +45,10 @@ def tela_principal():
         "Menu",
         [
             "Classificação de comentários",
-            "Classificador de legendas",
-            "Twitter",
+            "Twitter/X",
             "Extração de comentários",
+            "Classificador de legendas",
+
         ]
     )
 
