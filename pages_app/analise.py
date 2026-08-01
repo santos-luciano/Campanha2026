@@ -346,28 +346,28 @@ def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
         st.session_state.df_resultado_hash = hash_atual
         analise_desatualizada = False
 
-    st.subheader("📊 Análise Geral")
-    st.markdown("---")
-
-    if opcao == "Jaques Wagner":
-        mencoes_pl = df['menciona_projeto'].sum() + n_projetos
-
-        st.markdown(f"**💬 Total de comentários:** {total_comentarios}")
-        st.markdown(
-            f"**📌 Menções a PLs/PECs:** {mencoes_pl} "
-            f"({mencoes_pl/total_comentarios:.2%})"
-        )
-        st.markdown(
-            f"**🔁 Comentários repetidos (mesmo autor):** {duplicados} "
-            f"({duplicados/total_comentarios:.2%})"
-        )
-        st.markdown(
-            f"**✅ Comentários válidos:** {total_validos} "
-            f"({total_validos/total_comentarios:.2%})"
-        )
+    if "df_resultado" in st.session_state:
+        st.subheader("📊 Análise Geral")
         st.markdown("---")
 
-    if "df_resultado" in st.session_state:
+        if opcao == "Jaques Wagner":
+            mencoes_pl = df['menciona_projeto'].sum() + n_projetos
+
+            st.markdown(f"**💬 Total de comentários:** {total_comentarios}")
+            st.markdown(
+                f"**📌 Menções a PLs/PECs:** {mencoes_pl} "
+                f"({mencoes_pl/total_comentarios:.2%})"
+            )
+            st.markdown(
+                f"**🔁 Comentários repetidos (mesmo autor):** {duplicados} "
+                f"({duplicados/total_comentarios:.2%})"
+            )
+            st.markdown(
+                f"**✅ Comentários válidos:** {total_validos} "
+                f"({total_validos/total_comentarios:.2%})"
+            )
+            st.markdown("---")
+
         resultado = st.session_state.df_resultado.iloc[0]
         topicos = resultado["main_topics"]
 
@@ -384,16 +384,16 @@ def _exibir_resultados(df, total_comentarios, opcao, duplicados, n_projetos,
         st.markdown(f"🔴 **Comentários Negativos:** {est_neg} ({percentuais['p_neg']:.2%})")
         st.markdown(resultado["review_comments_negative"] or "_Sem comentários negativos_")
 
-    st.subheader("👍 Comentários mais curtidos")
+        st.subheader("👍 Comentários mais curtidos")
 
-    if top5.empty:
-        st.write("_Sem comentários curtidos_")
-    else:
-        for i, row in enumerate(top5.itertuples(), start=1):
-            comentario = getattr(row, "Comment")
-            likes = int(row.Likes)
+        if top5.empty:
+            st.write("_Sem comentários curtidos_")
+        else:
+            for i, row in enumerate(top5.itertuples(), start=1):
+                comentario = getattr(row, "Comment")
+                likes = int(row.Likes)
 
-            if len(comentario) > 200:
-                comentario = comentario[:200] + "..."
+                if len(comentario) > 200:
+                    comentario = comentario[:200] + "..."
 
-            st.write(f"{i}. \"{comentario}\" – {likes} curtidas")
+                st.write(f"{i}. \"{comentario}\" – {likes} curtidas")
