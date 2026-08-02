@@ -76,3 +76,21 @@ def calcular_distribuicao_geral(df, coluna="classificacao"):
         "percentual": percentual.round(2)
     })
     return resumo
+
+    def extrair_rede_e_data(nome_arquivo):
+    nome = nome_arquivo.lower()
+    if "facebook" in nome:
+        rede = "Facebook"
+    elif "instagram" in nome:
+        rede = "Instagram"
+    else:
+        rede = "Outro"
+
+    match = re.search(r"(\d{2})_(\d{2})_(\d{4})", nome_arquivo)
+    if match:
+        dia, mes, ano = match.groups()
+        data = pd.to_datetime(f"{ano}-{mes}-{dia}", errors="coerce")
+    else:
+        data = pd.NaT
+
+    return pd.Series({"rede_social": rede, "data": data})

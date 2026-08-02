@@ -24,9 +24,16 @@ from utils.metrics import (
     marcar_mencao_pl_no_motivo,
     calcular_percentuais,
     estimar_totais,
+    extrair_rede_e_data,   # ← adiciona essa
 )
 
 import re
+
+import plotly.express as px
+from utils.google_drive import autenticar_drive, ler_todos_arquivos_pasta
+
+
+
 
 # Regex com os caracteres de controle não permitidos pelo XML do Excel
 ILLEGAL_CHARACTERS_RE = re.compile(
@@ -468,6 +475,26 @@ def _exibir_resultados(df,
 # =================================================
 # PÁGINA — HISTÓRICO (GOOGLE DRIVE)
 # =================================================
+
+def extrair_rede_e_data(nome_arquivo):
+    nome = nome_arquivo.lower()
+    if "facebook" in nome:
+        rede = "Facebook"
+    elif "instagram" in nome:
+        rede = "Instagram"
+    else:
+        rede = "Outro"
+
+    match = re.search(r"(\d{2})_(\d{2})_(\d{4})", nome_arquivo)
+    if match:
+        dia, mes, ano = match.groups()
+        data = pd.to_datetime(f"{ano}-{mes}-{dia}", errors="coerce")
+    else:
+        data = pd.NaT
+
+    return pd.Series({"rede_social": rede, "data": data})
+
+
 @st.cache_data(ttl=300)
 def _carregar_historico_drive(folder_id):
     service = autenticar_drive()
@@ -502,31 +529,56 @@ def _aba_historico():
         return
 
     df_historico = df_historico.dropna(subset=["classificacao"])
+    df_historico[["rede_social", "data"]] = df_historico["arquivo_origem"].apply(extrair_rede_e_data)
 
+    cores = {"positivo": "#2ecc71", "negativo": "#e74c3c", "neutro": "#f1c40f"}
+
+    # === Distribuição geral ===
     st.subheader("📊 Distribuição Geral das Classificações")
-
     contagem = df_historico["classificacao"].value_counts()
     percentual = df_historico["classificacao"].value_counts(normalize=True) * 100
-    resumo = pd.DataFrame({
-        "quantidade": contagem,
-        "percentual": percentual.round(2)
-    })
-
+    resumo = pd.DataFrame({"quantidade": contagem, "percentual": percentual.round(2)})
     st.dataframe(resumo, use_container_width=True)
 
-    fig = px.pie(
-        resumo,
-        values="quantidade",
-        names=resumo.index,
+    fig_geral = px.pie(
+        resumo, values="quantidade", names=resumo.index,
         title=f"Distribuição de Sentimentos ({len(df_historico)} comentários no total)",
-        color=resumo.index,
-        color_discrete_map={
-            "positivo": "#2ecc71",
-            "negativo": "#e74c3c",
-            "neutro": "#f1c40f"
-        }
+        color=resumo.index, color_discrete_map=cores
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig_geral, use_container_width=True)
+
+    # === Distribuição por rede social ===
+    st.subheader("📊 Distribuição por Rede Social")
+    resumo_rede = (
+        df_historico.groupby(["rede_social", "classificacao"])
+        .size().reset_index(name="quantidade")
+    )
+    st.dataframe(resumo_rede, use_container_width=True)
+
+    fig_rede = px.bar(
+        resumo_rede, x="rede_social", y="quantidade", color="classificacao",
+        barmode="group", title="Classificações por Rede Social",
+        color_discrete_map=cores
+    )
+    st.plotly_chart(fig_rede, use_container_width=True)
+
+    # === Evolução por data ===
+    st.subheader("📈 Evolução por Data")
+    resumo_data = (
+        df_historico.dropna(subset=["data"])
+        .groupby(["data", "rede_social", "classificacao"])
+        .size().reset_index(name="quantidade")
+    )
+
+    if resumo_data.empty:
+        st.info("Nenhuma data identificada nos nomes dos arquivos.")
+    else:
+        fig_data = px.bar(
+            resumo_data, x="data", y="quantidade", color="classificacao",
+            facet_col="rede_social", title="Classificações ao Longo do Tempo",
+            color_discrete_map=cores
+        )
+        st.plotly_chart(fig_data, use_container_width=True)
 
     with st.expander("Ver todos os dados"):
         st.dataframe(df_historico, use_container_width=True)
