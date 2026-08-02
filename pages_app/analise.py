@@ -72,7 +72,7 @@ def tela_principal():
             "Twitter/X",
             "Extração de comentários",
             "Classificador de legendas",
-            "Histórico",
+            "Histórico (Em construção)",
         ]
     )
 
