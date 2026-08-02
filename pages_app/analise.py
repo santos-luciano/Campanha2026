@@ -352,6 +352,17 @@ def _exibir_resultados(df,
     if not df_editado.equals(st.session_state.df_classificado):
         st.session_state.df_classificado = df_editado
 
+    # === BOTÃO DE DOWNLOAD ===
+    buffer = io.BytesIO()
+    st.session_state.df_classificado.to_excel(buffer, index=False)
+    st.download_button(
+        "⬇️ Baixar classificação (Excel)",
+        data=buffer.getvalue(),
+        file_name="comentarios_classificados.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="download_classificado",
+    )
+
     top5 = (
         df
         .dropna(subset=["Likes", "Comment"])
