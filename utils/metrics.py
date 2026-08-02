@@ -95,7 +95,7 @@ def extrair_rede_e_data(nome_arquivo):
 
     return pd.Series({"rede_social": rede, "data": data})
 
-    def normalizar_para_exibicao(df):
+def normalizar_para_exibicao(df):
     df_norm = df.copy()
     for col in df_norm.columns:
         # força tudo que não é numérico puro a virar string, evitando mistura de tipos
