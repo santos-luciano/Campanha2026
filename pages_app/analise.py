@@ -25,6 +25,21 @@ from utils.metrics import (
     estimar_totais,
 )
 
+import re
+
+# Regex com os caracteres de controle não permitidos pelo XML do Excel
+ILLEGAL_CHARACTERS_RE = re.compile(
+    r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'
+)
+
+def limpar_para_excel(df):
+    df_limpo = df.copy()
+    for col in df_limpo.select_dtypes(include=["object"]).columns:
+        df_limpo[col] = df_limpo[col].apply(
+            lambda x: ILLEGAL_CHARACTERS_RE.sub("", x) if isinstance(x, str) else x
+        )
+    return df_limpo
+
 MESES_PT = {
     1: "jan", 2: "fev", 3: "mar", 4: "abr",
     5: "mai", 6: "jun", 7: "jul", 8: "ago",
@@ -354,7 +369,8 @@ def _exibir_resultados(df,
 
     # === BOTÃO DE DOWNLOAD ===
     buffer = io.BytesIO()
-    st.session_state.df_classificado.to_excel(buffer, index=False)
+    df_export = limpar_para_excel(st.session_state.df_classificado)
+    df_export.to_excel(buffer, index=False)
     st.download_button(
         "⬇️ Baixar classificação (Excel)",
         data=buffer.getvalue(),
