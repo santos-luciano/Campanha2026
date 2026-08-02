@@ -24,7 +24,8 @@ from utils.metrics import (
     marcar_mencao_pl_no_motivo,
     calcular_percentuais,
     estimar_totais,
-    extrair_rede_e_data,   # ← adiciona essa
+    extrair_rede_e_data,# ← adiciona essa
+    normalizar_para_exibicao   
 )
 
 import re
