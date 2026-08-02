@@ -67,3 +67,12 @@ def estimar_totais(percentuais, total_comentarios):
     est_neu = round(percentuais["p_neu"] * total_comentarios)
     est_neg = round(percentuais["p_neg"] * total_comentarios)
     return est_pos, est_neu, est_neg
+
+def calcular_distribuicao_geral(df, coluna="classificacao"):
+    contagem = df[coluna].value_counts()
+    percentual = df[coluna].value_counts(normalize=True) * 100
+    resumo = pd.DataFrame({
+        "quantidade": contagem,
+        "percentual": percentual.round(2)
+    })
+    return resumo

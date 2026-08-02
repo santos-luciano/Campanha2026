@@ -64,7 +64,7 @@ def tela_principal():
             "Twitter/X",
             "Extração de comentários",
             "Classificador de legendas",
-
+            "Histórico",
         ]
     )
 
@@ -74,6 +74,8 @@ def tela_principal():
         _aba_twitter()
     elif pagina == "Extração de comentários":
         _aba_capturar_comentarios()
+    elif pagina == "Histórico":
+        _aba_historico()
     else:
         files = st.file_uploader(
             "Carregue arquivos Excel",
@@ -460,3 +462,70 @@ def _exibir_resultados(df,
                     comentario = comentario[:200] + "..."
 
                 st.write(f"{i}. \"{comentario}\" – {likes} curtidas")
+
+
+# =================================================
+# PÁGINA — HISTÓRICO (GOOGLE DRIVE)
+# =================================================
+@st.cache_data(ttl=300)
+def _carregar_historico_drive(folder_id):
+    service = autenticar_drive()
+    return ler_todos_arquivos_pasta(folder_id, service)
+
+
+def _aba_historico():
+    st.subheader("Histórico de Classificações")
+    st.caption(
+        "Consolidado de todos os arquivos classificados salvos manualmente "
+        "na pasta do Google Drive."
+    )
+
+    folder_id = st.secrets.get("drive_folder_id", "")
+
+    if not folder_id.strip():
+        st.warning(
+            "Nenhuma pasta configurada. Cadastre 'drive_folder_id' "
+            "em Manage app → Settings → Secrets."
+        )
+        return
+
+    if st.button("🔄 Atualizar dados"):
+        st.cache_data.clear()
+        st.rerun()
+
+    with st.spinner("Carregando arquivos da pasta..."):
+        df_historico = _carregar_historico_drive(folder_id)
+
+    if df_historico.empty:
+        st.info("Nenhum arquivo encontrado na pasta do Drive ainda.")
+        return
+
+    df_historico = df_historico.dropna(subset=["classificacao"])
+
+    st.subheader("📊 Distribuição Geral das Classificações")
+
+    contagem = df_historico["classificacao"].value_counts()
+    percentual = df_historico["classificacao"].value_counts(normalize=True) * 100
+    resumo = pd.DataFrame({
+        "quantidade": contagem,
+        "percentual": percentual.round(2)
+    })
+
+    st.dataframe(resumo, use_container_width=True)
+
+    fig = px.pie(
+        resumo,
+        values="quantidade",
+        names=resumo.index,
+        title=f"Distribuição de Sentimentos ({len(df_historico)} comentários no total)",
+        color=resumo.index,
+        color_discrete_map={
+            "positivo": "#2ecc71",
+            "negativo": "#e74c3c",
+            "neutro": "#f1c40f"
+        }
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    with st.expander("Ver todos os dados"):
+        st.dataframe(df_historico, use_container_width=True)
