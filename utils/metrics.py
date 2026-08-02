@@ -77,7 +77,7 @@ def calcular_distribuicao_geral(df, coluna="classificacao"):
     })
     return resumo
 
-    def extrair_rede_e_data(nome_arquivo):
+def extrair_rede_e_data(nome_arquivo):
     nome = nome_arquivo.lower()
     if "facebook" in nome:
         rede = "Facebook"
