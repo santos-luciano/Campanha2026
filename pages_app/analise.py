@@ -249,7 +249,7 @@ def _aba_capturar_comentarios():
     df_capturado = st.session_state.get("df_capturado")
 
     if df_capturado is not None and not df_capturado.empty:
-        st.dataframe(df_capturado, use_container_width=True)
+        st.dataframe(normalizar_para_exibicao(df_capturado), use_container_width=True)
 
         buffer = io.BytesIO()
         df_capturado.to_excel(buffer, index=False)

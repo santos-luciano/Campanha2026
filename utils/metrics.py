@@ -94,3 +94,13 @@ def extrair_rede_e_data(nome_arquivo):
         data = pd.NaT
 
     return pd.Series({"rede_social": rede, "data": data})
+
+    def normalizar_para_exibicao(df):
+    df_norm = df.copy()
+    for col in df_norm.columns:
+        # força tudo que não é numérico puro a virar string, evitando mistura de tipos
+        if df_norm[col].dtype == "object":
+            df_norm[col] = df_norm[col].apply(
+                lambda x: str(x) if not isinstance(x, (int, float, type(None))) else x
+            )
+    return df_norm
