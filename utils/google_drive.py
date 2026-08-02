@@ -8,8 +8,9 @@ from googleapiclient.http import MediaIoBaseDownload
 
 @st.cache_resource
 def autenticar_drive():
+    info_credenciais = dict(st.secrets["gcp_service_account"])  # força conversão pra dict puro
     creds = service_account.Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"],
+        info_credenciais,
         scopes=["https://www.googleapis.com/auth/drive"]
     )
     return build("drive", "v3", credentials=creds)
