@@ -126,7 +126,7 @@ def _aba_classificador_legendas():
 
     modo = st.radio(
         "Modo de classificação",
-        ["Legenda única", "Lote de legendas"],
+        ["Legenda única", "Múltiplas legendas"],
         horizontal=True
     )
 
@@ -142,24 +142,31 @@ def _aba_classificador_legendas():
 
     else:
         st.caption(
-            "Cole as legendas separadas por uma linha contendo apenas `---`. "
-            "Legendas do mesmo evento classificadas juntas tendem a ficar "
-            "mais consistentes entre si."
+            "Adicione uma caixa por legenda. Legendas do mesmo evento "
+            "classificadas juntas tendem a ficar mais consistentes entre si."
         )
 
-        texto_bruto = st.text_area(
-            "Cole as legendas (separadas por ---)",
-            height=300,
-            placeholder="Legenda 1...\n---\nLegenda 2...\n---\nLegenda 3..."
-        )
+        if "num_legendas" not in st.session_state:
+            st.session_state.num_legendas = 2
+
+        col_add, col_remove = st.columns(2)
+        with col_add:
+            if st.button("➕ Adicionar legenda"):
+                st.session_state.num_legendas += 1
+        with col_remove:
+            if st.button("➖ Remover legenda") and st.session_state.num_legendas > 1:
+                st.session_state.num_legendas -= 1
+
+        legendas_input = []
+        for i in range(st.session_state.num_legendas):
+            texto = st.text_area(f"Legenda {i + 1}", height=120, key=f"legenda_{i}")
+            legendas_input.append(texto)
 
         if st.button("Classificar lote"):
-            legendas = [
-                l.strip() for l in texto_bruto.split("---") if l.strip()
-            ]
+            legendas = [l.strip() for l in legendas_input if l.strip()]
 
             if not legendas:
-                st.warning("Cole ao menos uma legenda antes de classificar.")
+                st.warning("Preencha ao menos uma legenda antes de classificar.")
             else:
                 with st.spinner(f"Classificando {len(legendas)} legendas..."):
                     categorias = classifier.classify_batch(legendas)
