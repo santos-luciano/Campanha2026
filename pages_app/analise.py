@@ -252,22 +252,18 @@ def _aba_capturar_comentarios():
     if df_capturado is not None and not df_capturado.empty:
         st.dataframe(normalizar_para_exibicao(df_capturado), use_container_width=True)
 
+        post_id = extrair_id_post(url_post)
+        prefixo = prefixo_plataforma(url_post)
+        nome_arquivo = f"{prefixo}_comments_{post_id}.xlsx"
+
         buffer = io.BytesIO()
         df_capturado.to_excel(buffer, index=False)
         st.download_button(
             "⬇️ Baixar comentários (Excel)",
             data=buffer.getvalue(),
-            file_name="comentarios_exportcomments.xlsx",
+            file_name=nome_arquivo,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-        st.caption(
-            "O nome do arquivo já contém 'exportcomments', então a aba 🤖 "
-            "Classificação vai tentar aplicar a mesma normalização de colunas "
-            "usada para arquivos exportados manualmente. Confira se os nomes "
-            "de coluna batem (Name, ProfileId, Comment, Date, Likes) antes de "
-            "carregar lá — a API pode retornar nomes diferentes."
-        )
-
 
 # =================================================
 # PÁGINA — CLASSIFICAÇÃO DE COMENTÁRIOS

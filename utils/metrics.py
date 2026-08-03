@@ -104,3 +104,19 @@ def normalizar_para_exibicao(df):
                 lambda x: str(x) if not isinstance(x, (int, float, type(None))) else x
             )
     return df_norm
+
+def extrair_id_post(url: str) -> str:
+    """Extrai o shortcode/ID do post a partir da URL do Instagram ou Facebook."""
+    match = re.search(r'/(?:p|reel|tv|posts|videos)/([A-Za-z0-9_-]+)', url)
+    if match:
+        return match.group(1)
+    partes = [p for p in url.rstrip('/').split('/') if p]
+    return partes[-1] if partes else "post"
+
+
+def prefixo_plataforma(url: str) -> str:
+    if "instagram.com" in url:
+        return "ig"
+    elif "facebook.com" in url or "fb.com" in url:
+        return "fb"
+    return "post"
