@@ -5,14 +5,21 @@ from openai import OpenAI
 class CaptionClassifier:
 
     CATEGORIAS = {
-        "campanha_eleitoral": "candidatura, convenção partidária, comício, pedido de voto, alianças eleitorais, filiação",
-        "realizacoes_gestao": "obras, entregas, resultados de mandato ou governo",
+        # Eleitoral / político-partidário
+        "campanha_eleitoral": "candidatura, convenção partidária, comício, pedido de voto, alianças eleitorais",
         "posicionamento_politico": "opinião sobre pauta em debate (PEC, projeto de lei, tema nacional)",
-        "agenda_institucional": "compromissos oficiais, reuniões, sessões, viagens de trabalho",
         "atuacao_politica": "articulação, bastidores, negociação política sem ser sobre eleição",
-        "participacao_cidada": "interação com população, ouvidoria, eventos com comunidade",
-        "homenagens_datas": "datas comemorativas, luto, aniversários, efemérides",
         "resposta_criticas": "reação a ataques, fake news, oposição",
+
+        # Gestão / governo
+        "realizacoes_gestao": "obras, entregas, resultados concretos de mandato ou governo",
+        "servico_publico": "informes operacionais: vacinação, mutirões, horários de atendimento, alertas, mudanças de trânsito, editais",
+        "agenda_institucional": "compromissos oficiais, reuniões, sessões, viagens de trabalho, visitas",
+
+        # Sociedade / comunicação institucional
+        "campanha_conscientizacao": "datas temáticas de conscientização com apelo social (Agosto Lilás, Setembro Amarelo, Outubro Rosa, campanhas de saúde pública, combate a doenças)",
+        "participacao_cidada": "interação direta com população, ouvidoria, consulta pública, eventos com a comunidade",
+        "homenagens_datas": "datas comemorativas, luto, aniversários de cidade/instituição, efemérides sem apelo de campanha",
     }
 
     def __init__(self, api_key, model="gpt-5-mini"):
