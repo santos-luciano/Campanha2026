@@ -105,6 +105,8 @@ def normalizar_para_exibicao(df):
             )
     return df_norm
 
+import re
+
 def extrair_id_post(url: str) -> str:
     """Extrai o shortcode/ID do post a partir da URL do Instagram ou Facebook."""
     match = re.search(r'/(?:p|reel|tv|posts|videos)/([A-Za-z0-9_-]+)', url)
