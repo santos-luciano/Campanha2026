@@ -1,6 +1,7 @@
 import io
 import os
 import random
+import altair as alt
 
 
 import pandas as pd
@@ -239,7 +240,20 @@ def _aba_twitter():
         df_plot[COLUNA_DATA] = df_plot[COLUNA_DATA].apply(
         lambda d: f"{d.day:02d} {MESES_PT[d.month]}")
 
-    st.line_chart(df_plot.set_index(COLUNA_DATA)[COLUNA_VALOR])
+    grafico = (
+        alt.Chart(df_plot)
+        .mark_line(point=True)
+        .encode(
+            x=alt.X(
+                f"{COLUNA_DATA}:T",
+                title="Data",
+                axis=alt.Axis(format="%d %b")
+            ),
+            y=alt.Y(COLUNA_VALOR, title=COLUNA_VALOR)
+        )
+    )
+
+    st.altair_chart(grafico, use_container_width=True)
 
     with st.expander("Ver dados da planilha"):
         aba_escolhida = st.radio(
