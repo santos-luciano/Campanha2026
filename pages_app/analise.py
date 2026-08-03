@@ -122,15 +122,55 @@ def tela_principal():
 def _aba_classificador_legendas():
     st.subheader("Classificador de Legendas")
 
-    legenda = st.text_area("Cole a legenda", height=200)
-
     classifier = CaptionClassifier(api_key=os.getenv("OPENAI_API_KEY"))
 
-    if st.button("Classificar"):
-        if legenda.strip():
-            resultado = classifier.classify(legenda)
-            st.success(f"**Categoria:** {resultado['categoria']}")
+    modo = st.radio(
+        "Modo de classificação",
+        ["Legenda única", "Lote de legendas"],
+        horizontal=True
+    )
 
+    if modo == "Legenda única":
+        legenda = st.text_area("Cole a legenda", height=200)
+
+        if st.button("Classificar"):
+            if legenda.strip():
+                resultado = classifier.classify(legenda)
+                st.success(f"**Categoria:** {resultado['categoria']}")
+            else:
+                st.warning("Cole uma legenda antes de classificar.")
+
+    else:
+        st.caption(
+            "Cole as legendas separadas por uma linha contendo apenas `---`. "
+            "Legendas do mesmo evento classificadas juntas tendem a ficar "
+            "mais consistentes entre si."
+        )
+
+        texto_bruto = st.text_area(
+            "Cole as legendas (separadas por ---)",
+            height=300,
+            placeholder="Legenda 1...\n---\nLegenda 2...\n---\nLegenda 3..."
+        )
+
+        if st.button("Classificar lote"):
+            legendas = [
+                l.strip() for l in texto_bruto.split("---") if l.strip()
+            ]
+
+            if not legendas:
+                st.warning("Cole ao menos uma legenda antes de classificar.")
+            else:
+                with st.spinner(f"Classificando {len(legendas)} legendas..."):
+                    categorias = classifier.classify_batch(legendas)
+
+                df_resultado = pd.DataFrame({
+                    "legenda": legendas,
+                    "categoria": categorias
+                })
+
+                st.success(f"{len(legendas)} legendas classificadas.")
+                st.dataframe(df_resultado, use_container_width=True)
 
 # =================================================
 # PÁGINA — HISTÓRICO TWITTER / X
