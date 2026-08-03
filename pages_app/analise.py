@@ -269,7 +269,25 @@ def _aba_twitter():
         )
     )
 
-    st.altair_chart(grafico, use_container_width=True)# =================================================
+    st.altair_chart(grafico, use_container_width=True)
+
+    with st.expander("Ver dados da planilha"):
+        aba_escolhida = st.radio(
+            "Aba", [NOME_ABA_GRAFICO, NOME_ABA_COMENTARIOS], horizontal=True
+        )
+
+        try:
+            df_aba = (
+                df if aba_escolhida == NOME_ABA_GRAFICO
+                else carregar_aba_por_nome(link, NOME_ABA_COMENTARIOS)
+            )
+        except ValueError as err:
+            st.error(f"⚠️ {err}")
+        else:
+            st.dataframe(df_aba, use_container_width=True)
+
+
+# =================================================
 # PÁGINA — CAPTURAR COMENTÁRIOS (ExportComments)
 # =================================================
 def _aba_capturar_comentarios():
