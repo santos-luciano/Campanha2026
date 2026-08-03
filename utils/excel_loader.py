@@ -1,19 +1,14 @@
 import pandas as pd
 
-# Colunas que identificam o export "bruto" de comentários do Instagram
-# (id, shortcode, username, name, time, likes, comment_id, message,
-# sentiment, profile_id, ...). Detectamos pelo conjunto de colunas, não
-# pelo nome do arquivo, já que esse nome pode variar.
+# Formato "bruto" de comentários do Instagram
 COLUNAS_FORMATO_MENSAGEM = {'username', 'profile_id', 'message', 'time'}
+
+# Formato "bruto" de comentários do Facebook (name/nick_name em vez de
+# username, e presença de post_id/comment_id que não existem no formato IG)
+COLUNAS_FORMATO_FACEBOOK = {'name', 'nick_name', 'message', 'profile_id', 'time', 'post_id'}
 
 
 def carregar_e_normalizar(files):
-    """
-    Carrega uma lista de arquivos Excel (vindos do st.file_uploader),
-    normaliza os nomes de colunas conforme o padrão de cada tipo de
-    arquivo, e retorna um único DataFrame concatenado com as colunas:
-    Name, ProfileId, Comment, Date, Likes
-    """
     dfs = [_carregar_arquivo(f) for f in files]
 
     df = pd.concat(dfs, ignore_index=True)
@@ -27,18 +22,18 @@ def carregar_e_normalizar(files):
 
 def _carregar_arquivo(f):
     """
-    Lê um único arquivo Excel. Primeiro verifica se é o formato
-    "message" (export bruto, ex: Instagram) pela ASSINATURA DAS COLUNAS —
-    isso tem prioridade sobre qualquer heurística de nome de arquivo, que
-    pode ser ambígua (ex: nomes de arquivo que contêm 'exportcomments'
-    sem de fato ter as colunas Username/Display Name esperadas por esse
-    formato). Só cai na lógica antiga (baseada em nome de arquivo) se as
-    colunas não baterem com o formato "message".
+    Lê um único arquivo Excel. A detecção por ASSINATURA DE COLUNAS tem
+    prioridade sobre a heurística de nome de arquivo (que é ambígua).
+    Ordem de checagem: formato Instagram -> formato Facebook -> nome de
+    arquivo (fallback para formatos antigos).
     """
     df_bruto = pd.read_excel(f)
 
     if COLUNAS_FORMATO_MENSAGEM.issubset(df_bruto.columns):
         return _normalizar_formato_mensagem(df_bruto)
+
+    if COLUNAS_FORMATO_FACEBOOK.issubset(df_bruto.columns):
+        return _normalizar_formato_facebook(df_bruto)
 
     if 'exportcomments' in f.name:
         df = df_bruto.rename(columns={
@@ -83,11 +78,6 @@ def _carregar_arquivo(f):
 
 
 def _normalizar_formato_mensagem(df):
-    """
-    Normaliza o export "bruto" de comentários (colunas: username,
-    profile_id, message, time, likes, ...) — comum em exports diretos
-    do Instagram com id, shortcode, sentiment, media_id etc.
-    """
     df = df.rename(columns={
         'username': 'Name',
         'profile_id': 'ProfileId',
@@ -95,9 +85,27 @@ def _normalizar_formato_mensagem(df):
         'time': 'Date',
         'likes': 'Likes',
     })
+    df['Date'] = pd.to_datetime(df['Date'], unit='s', errors='coerce')
+    df = _garantir_likes(df)
+    df = df[['Name', 'ProfileId', "Comment", "Date", "Likes"]]
+    return df
 
-    # 'time' costuma vir como timestamp Unix (segundos) — converte para
-    # data/hora de verdade. Se não vier nesse formato, cai em NaT.
+
+def _normalizar_formato_facebook(df):
+    """
+    Normaliza o export "bruto" de comentários do Facebook (colunas: name,
+    nick_name, time, likes, message, profile_id, profile_id (duplicada),
+    post_id, comment_id, parent_comment_id, ...).
+    """
+    df = df.rename(columns={
+        'name': 'Name',
+        'profile_id': 'ProfileId',
+        'message': 'Comment',
+        'time': 'Date',
+        'likes': 'Likes',
+    })
+
+    # 'time' vem como timestamp Unix em segundos
     df['Date'] = pd.to_datetime(df['Date'], unit='s', errors='coerce')
 
     df = _garantir_likes(df)
