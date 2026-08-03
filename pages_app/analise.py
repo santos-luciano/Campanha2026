@@ -25,7 +25,9 @@ from utils.metrics import (
     calcular_percentuais,
     estimar_totais,
     extrair_rede_e_data,# ← adiciona essa
-    normalizar_para_exibicao   
+    normalizar_para_exibicao,
+    extrair_id_post,
+    prefixo_plataforma
 )
 
 import re
