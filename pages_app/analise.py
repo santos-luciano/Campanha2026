@@ -218,8 +218,17 @@ def _aba_twitter():
         return
 
     df_plot = df[[COLUNA_DATA, COLUNA_VALOR]].copy()
-    df_plot[COLUNA_DATA] = pd.to_datetime(df_plot[COLUNA_DATA], errors="coerce", dayfirst=True)
-    df_plot[COLUNA_VALOR] = pd.to_numeric(df_plot[COLUNA_VALOR], errors="coerce")
+    df_plot[COLUNA_DATA] = pd.to_datetime(
+        df_plot[COLUNA_DATA],
+        format="%Y/%m/%d",   # formato exato
+        errors="coerce"
+    )
+    df_plot[COLUNA_VALOR] = (
+    df_plot[COLUNA_VALOR]
+    .astype(str)
+    .str.replace(".", "", regex=False)   # remove separador de milhar
+    .str.replace(",", ".", regex=False)  # caso existam decimais no padrão BR
+    )
     df_plot = df_plot.dropna(subset=[COLUNA_DATA, COLUNA_VALOR]).sort_values(COLUNA_DATA)
 
     
