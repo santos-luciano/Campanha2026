@@ -86,7 +86,7 @@ def tela_principal():
         _aba_twitter()
     elif pagina == "Extração de comentários":
         _aba_capturar_comentarios()
-    elif pagina == "Histórico":
+    elif pagina == "Histórico (Em construção)":
         _aba_historico()
     else:
         files = st.file_uploader(
