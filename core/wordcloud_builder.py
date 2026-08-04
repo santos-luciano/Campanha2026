@@ -23,7 +23,7 @@ def _garantir_stopwords_nltk():
 # somar palavras específicas do próprio contexto por cima dessa lista.
 STOPWORDS_PADRAO = [
     'https', 'jaques', 'pra', 'wagner', 'so', 'oficial', 'nao',
-    'oficialcaetano', 'laisa', 'figueiredo', 'prefeito', 'caetano',
+    'oficialcaetano', 'laisa', 'figueiredo', 'caetano',
     'igsh', 'www', 'mwjjztdootvlmhhwnq', 'instagram', 'facebook',
     'set', 'php', 'type', 'fbid', 'time', 'photo', 'jaqueswagner',
     'co', 'ja', 'vai', 'camacari',
