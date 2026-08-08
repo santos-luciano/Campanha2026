@@ -71,10 +71,9 @@ def tela_principal():
     st.sidebar.markdown("---")
     pagina = st.sidebar.radio(
         "Menu",
-        [
+        [  "Extração de comentários",
             "Classificação de comentários",
             "Twitter/X",
-            "Extração de comentários",
             "Classificador de legendas",
             "Histórico (Em construção)",
         ]
