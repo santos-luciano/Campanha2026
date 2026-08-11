@@ -22,6 +22,24 @@ class CaptionClassifier:
         "homenagens_datas": "datas comemorativas, luto, aniversários de cidade/instituição, efemérides sem apelo de campanha",
     }
 
+    TEMAS = {
+        "saude": "SUS, hospitais, vacinação, doenças, saúde pública ou privada",
+        "educacao": "escolas, universidades, professores, matrículas, merenda, alfabetização",
+        "seguranca": "polícia, criminalidade, violência, segurança pública, guarda municipal",
+        "infraestrutura": "obras públicas, pavimentação, saneamento, iluminação, construção civil",
+        "meio_ambiente": "sustentabilidade, clima, desmatamento, resíduos, áreas verdes, desastres ambientais",
+        "economia": "emprego, inflação, impostos, orçamento público, desenvolvimento econômico",
+        "assistencia_social": "programas sociais, combate à pobreza, CRAS, benefícios, população vulnerável",
+        "cultura": "eventos culturais, patrimônio histórico, artes, festivais",
+        "esporte": "eventos esportivos, incentivo à prática esportiva, equipamentos esportivos",
+        "direitos_humanos": "igualdade, combate à discriminação, direitos de minorias, violência de gênero",
+        "administracao_publica": "gestão interna, transparência, concursos, servidores públicos",
+        "turismo": "atrativos turísticos, promoção de destinos, eventos turísticos",
+        "habitacao": "moradia popular, regularização fundiária, programas habitacionais",
+        "mobilidade_urbana": "transporte público, trânsito, ciclovias, mobilidade urbana",
+        "outros": "não se enquadra claramente em nenhum tema acima",
+    }
+
     def __init__(self, api_key, model="gpt-5-mini"):
         self.client = OpenAI(api_key=api_key)
         self.model = model
@@ -32,15 +50,26 @@ class CaptionClassifier:
             for chave, descricao in self.CATEGORIAS.items()
         )
 
+    def _lista_temas_formatada(self):
+        return "\n".join(
+            f"- {chave}: {descricao}"
+            for chave, descricao in self.TEMAS.items()
+        )
+
     def classify(self, caption):
-        """Classifica uma única legenda (sem contexto de outras postagens)."""
+        """Classifica uma única legenda (sem contexto de outras postagens)
+        em categoria e tema."""
 
         prompt = f"""
 Você é um classificador de legendas de redes sociais de políticos e instituições públicas.
 
-Classifique a legenda em apenas UMA categoria:
+Classifique a legenda em duas dimensões:
 
+1) categoria (escolha apenas UMA):
 {self._lista_categorias_formatada()}
+
+2) tema (escolha apenas UM, o assunto de fundo da publicação):
+{self._lista_temas_formatada()}
 
 Legenda:
 {caption}
@@ -54,9 +83,13 @@ Legenda:
                     "categoria": {
                         "type": "string",
                         "enum": list(self.CATEGORIAS.keys())
+                    },
+                    "tema": {
+                        "type": "string",
+                        "enum": list(self.TEMAS.keys())
                     }
                 },
-                "required": ["categoria"],
+                "required": ["categoria", "tema"],
                 "additionalProperties": False
             },
             "strict": True
@@ -79,9 +112,9 @@ Legenda:
 
     def classify_batch(self, captions):
         """
-        Classifica um grupo de legendas, dando ao modelo o contexto do
-        conjunto para reduzir a oscilação entre categorias próximas
-        (ex: campanha vs atuação política).
+        Classifica um grupo de legendas em categoria e tema, dando ao
+        modelo o contexto do conjunto para reduzir a oscilação entre
+        categorias/temas próximos (ex: campanha vs atuação política).
         """
 
         legendas_numeradas = "\n\n".join(
@@ -95,12 +128,16 @@ As legendas abaixo podem pertencer ao mesmo evento ou contexto. Use o
 conjunto para entender o contexto compartilhado antes de classificar cada
 uma individualmente.
 
-Categorias disponíveis:
+Cada legenda deve ser classificada em duas dimensões:
 
+1) categoria (escolha apenas UMA):
 {self._lista_categorias_formatada()}
 
-Classifique CADA legenda numerada em exatamente UMA categoria, mesmo que
-pareçam relacionadas entre si.
+2) tema (escolha apenas UM, o assunto de fundo da publicação):
+{self._lista_temas_formatada()}
+
+Classifique CADA legenda numerada em exatamente UMA categoria e UM tema,
+mesmo que pareçam relacionadas entre si.
 
 Legendas:
 {legendas_numeradas}
@@ -120,9 +157,13 @@ Legendas:
                                 "categoria": {
                                     "type": "string",
                                     "enum": list(self.CATEGORIAS.keys())
+                                },
+                                "tema": {
+                                    "type": "string",
+                                    "enum": list(self.TEMAS.keys())
                                 }
                             },
-                            "required": ["indice", "categoria"],
+                            "required": ["indice", "categoria", "tema"],
                             "additionalProperties": False
                         }
                     }
@@ -150,7 +191,10 @@ Legendas:
         classificacoes_ordenadas = sorted(
             resultado["classificacoes"], key=lambda x: x["indice"]
         )
-        return [item["categoria"] for item in classificacoes_ordenadas]
+        return [
+            {"categoria": item["categoria"], "tema": item["tema"]}
+            for item in classificacoes_ordenadas
+        ]
 
     @staticmethod
     def agrupar_em_lotes(itens, tamanho_lote=10):
