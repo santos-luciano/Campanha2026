@@ -376,8 +376,8 @@ def _aba_classificacao_comentarios(df, total_comentarios):
     )
 
     comentarios1 = (
-        random.sample(comentarios, 100)
-        if len(comentarios) > 1000
+        random.sample(comentarios, 500)
+        if len(comentarios) > 500
         else comentarios
     )
 
