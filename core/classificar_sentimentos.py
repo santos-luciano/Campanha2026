@@ -49,7 +49,7 @@ class PromptBuilder:
         Tarefa:
         1. Faça uma análise geral dos comentários sem falar de polarização, de maneira direta sem muitas interpretações
         2. Identifique padrões de discurso
-        3. Destaque temas principais
+        3. Destaque temas principais, a definição leve em consideração o contexto
         4. Analise separadamente positivos, neutros e negativos
         5. Faça uma separação clara do que é positivo, neutro e negativos
         
