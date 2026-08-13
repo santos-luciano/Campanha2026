@@ -10,7 +10,7 @@ schema_classifier_consolidado = { "name": "ClassificacaoComentariosLote",
                                    "main_topics": {
                                            "type": "array",
                                            "items": {"type": "string",
-                                                     "description":"4 temas principais, cada tema definido em no máximo 2 termos, foco no contexto"}
+                                                     "description":"2 temas principais, cada tema definido em no máximo 2 termos, foco no contexto"}
                                        },
                                    "review_comments_positives": { "type": "string",
                                                                  "description": "Os comentários positivos apontam que as pessoas pensam o quê? Seja direto e dê um exemplo" ,
