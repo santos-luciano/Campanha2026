@@ -10,6 +10,8 @@ class CaptionClassifier:
         "posicionamento_politico": "opinião sobre pauta em debate (PEC, projeto de lei, tema nacional)",
         "atuacao_politica": "articulação, bastidores, negociação política sem ser sobre eleição",
         "resposta_criticas": "reação a ataques, fake news, oposição",
+        "discurso_mobilizacao": "discurso motivacional de continuidade e engajamento (força, união, 'seguir em frente', 'vamos juntos'), sem pedido de voto, sem pauta específica e sem entrega/resultado concreto citado",
+
 
         # Gestão / governo
         "realizacoes_gestao": "obras, entregas, resultados concretos de mandato ou governo",
