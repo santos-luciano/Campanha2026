@@ -417,10 +417,12 @@ def _aba_classificacao_comentarios(df, total_comentarios):
 
         df_classificado_1 = pd.DataFrame(resultado["respostas"])
 
-        mask_projeto = marcar_mencao_pl_no_motivo(df_classificado_1)
-        n_projetos = mask_projeto.sum()
+#        mask_projeto = marcar_mencao_pl_no_motivo(df_classificado_1)
+#        n_projetos = mask_projeto.sum()
 
-        st.session_state.df_classificado = df_classificado_1[~mask_projeto]
+#        st.session_state.df_classificado = df_classificado_1[~mask_projeto]
+
+        st.session_state.df_classificado = df_classificado_1
 
         st.success("Classificação concluída!")
 
