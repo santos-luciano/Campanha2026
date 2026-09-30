@@ -381,6 +381,8 @@ def _aba_classificacao_comentarios(df, total_comentarios):
         else comentarios
     )
 
+    st.write(f"💬 **Total de comentários: {len(comentarios_df["Comment"])}**")
+
     exibir_nuvem_palavras(
     comentarios_df["Comment"],
     titulo="☁️ Nuvem de Palavras — Comentários",
