@@ -1,32 +1,7 @@
 import pandas as pd
 
-
-def corrigir_excel_openpyxl(f):
-    arquivo = f.read()
-
-    entrada = io.BytesIO(arquivo)
-    saida = io.BytesIO()
-
-    with zipfile.ZipFile(entrada, "r") as zin:
-        with zipfile.ZipFile(saida, "w", zipfile.ZIP_DEFLATED) as zout:
-            for item in zin.infolist():
-                conteudo = zin.read(item.filename)
-
-                if item.filename.startswith("xl/worksheets/") and item.filename.endswith(".xml"):
-                    conteudo = conteudo.replace(
-                        b' showZeroes="1"',
-                        b''
-                    ).replace(
-                        b' showZeroes="0"',
-                        b''
-                    )
-
-                zout.writestr(item, conteudo)
-
-    saida.seek(0)
-    return saida
-
-
+import io
+import zipfile
 
 # Formato "bruto" de comentários do Instagram
 COLUNAS_FORMATO_MENSAGEM = {'username', 'profile_id', 'message', 'time'}
@@ -47,6 +22,57 @@ def carregar_e_normalizar(files):
 
     return df
 
+def _ler_excel(f, **kwargs):
+    """
+    Lê o Excel normalmente.
+
+    Caso o arquivo contenha o atributo incompatível 'showZeroes',
+    corrige temporariamente o XML interno do XLSX e tenta novamente.
+    """
+    f.seek(0)
+
+    try:
+        return pd.read_excel(f, **kwargs)
+
+    except TypeError as e:
+        if 'showZeroes' not in str(e):
+            raise
+
+        f.seek(0)
+
+        arquivo = io.BytesIO(f.read())
+        arquivo_corrigido = io.BytesIO()
+
+        with zipfile.ZipFile(arquivo, 'r') as zin:
+            with zipfile.ZipFile(
+                arquivo_corrigido,
+                'w',
+                zipfile.ZIP_DEFLATED
+            ) as zout:
+
+                for item in zin.infolist():
+                    conteudo = zin.read(item.filename)
+
+                    # Corrige apenas os XMLs das planilhas
+                    if (
+                        item.filename.startswith('xl/worksheets/')
+                        and item.filename.endswith('.xml')
+                    ):
+                        conteudo = conteudo.replace(
+                            b' showZeroes="1"',
+                            b''
+                        )
+                        conteudo = conteudo.replace(
+                            b' showZeroes="0"',
+                            b''
+                        )
+
+                    zout.writestr(item, conteudo)
+
+        arquivo_corrigido.seek(0)
+
+        return pd.read_excel(arquivo_corrigido, **kwargs)
+
 
 def _carregar_arquivo(f):
     """
@@ -55,20 +81,7 @@ def _carregar_arquivo(f):
     Ordem de checagem: formato Instagram -> formato Facebook -> nome de
     arquivo (fallback para formatos antigos).
     """
-
-# f.seek(0)
-
-    try:
-        df_bruto = pd.read_excel(f)
-    except TypeError as e:
-        if "showZeroes" in str(e):
-            arquivo_corrigido = corrigir_excel_openpyxl(f)
-            df_bruto = pd.read_excel(arquivo_corrigido)
-        else:
-            raise
-
-
-    df_bruto = pd.read_excel(f)
+    df_bruto = _ler_excel(f)
 
     if COLUNAS_FORMATO_MENSAGEM.issubset(df_bruto.columns):
         return _normalizar_formato_mensagem(df_bruto)
@@ -98,7 +111,7 @@ def _carregar_arquivo(f):
 
     elif 'tweet' in f.name:
         f.seek(0)
-        df = pd.read_excel(f, skiprows=6)
+        df = _ler_excel(f, skiprows=6)
         df = df.dropna(subset=['Unnamed: 0'])
         df = df.rename(columns={
             'Username': 'ProfileId',
@@ -109,7 +122,7 @@ def _carregar_arquivo(f):
 
     else:
         f.seek(0)
-        df = pd.read_excel(f, skiprows=6)
+        df = _ler_excel(f, skiprows=6)
         df = df.dropna(subset=['Unnamed: 0'])
         df = df.rename(columns={'Profile ID': 'ProfileId'})
         df = _garantir_likes(df)
