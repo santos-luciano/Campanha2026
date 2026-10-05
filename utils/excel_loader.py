@@ -59,9 +59,9 @@ def ler_arquivo_excel(arquivo):
 
                 zout.writestr(item, conteudo)
 
-    
+    arquivo_corrigido.seek(0)
 
-    return arquivo_corrigido.seek(0)
+    return arquivo_corrigido
 
 def _carregar_arquivo(f):
     """
