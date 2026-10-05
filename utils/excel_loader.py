@@ -1,5 +1,33 @@
 import pandas as pd
 
+
+def corrigir_excel_openpyxl(f):
+    arquivo = f.read()
+
+    entrada = io.BytesIO(arquivo)
+    saida = io.BytesIO()
+
+    with zipfile.ZipFile(entrada, "r") as zin:
+        with zipfile.ZipFile(saida, "w", zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                conteudo = zin.read(item.filename)
+
+                if item.filename.startswith("xl/worksheets/") and item.filename.endswith(".xml"):
+                    conteudo = conteudo.replace(
+                        b' showZeroes="1"',
+                        b''
+                    ).replace(
+                        b' showZeroes="0"',
+                        b''
+                    )
+
+                zout.writestr(item, conteudo)
+
+    saida.seek(0)
+    return saida
+
+
+
 # Formato "bruto" de comentários do Instagram
 COLUNAS_FORMATO_MENSAGEM = {'username', 'profile_id', 'message', 'time'}
 
@@ -27,6 +55,19 @@ def _carregar_arquivo(f):
     Ordem de checagem: formato Instagram -> formato Facebook -> nome de
     arquivo (fallback para formatos antigos).
     """
+
+# f.seek(0)
+
+    try:
+        df_bruto = pd.read_excel(f)
+    except TypeError as e:
+        if "showZeroes" in str(e):
+            arquivo_corrigido = corrigir_excel_openpyxl(f)
+            df_bruto = pd.read_excel(arquivo_corrigido)
+        else:
+            raise
+
+
     df_bruto = pd.read_excel(f)
 
     if COLUNAS_FORMATO_MENSAGEM.issubset(df_bruto.columns):
