@@ -1,4 +1,7 @@
 import pandas as pd
+import io
+import zipfile
+import re
 
 # Formato "bruto" de comentários do Instagram
 COLUNAS_FORMATO_MENSAGEM = {'username', 'profile_id', 'message', 'time'}
