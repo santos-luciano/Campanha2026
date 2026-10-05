@@ -59,9 +59,9 @@ def ler_arquivo_excel(arquivo):
 
                 zout.writestr(item, conteudo)
 
-    arquivo_corrigido.seek(0)
+    
 
-    return arquivo_corrigido
+    return arquivo_corrigido.seek(0)
 
 def _carregar_arquivo(f):
     """
@@ -70,7 +70,7 @@ def _carregar_arquivo(f):
     Ordem de checagem: formato Instagram -> formato Facebook -> nome de
     arquivo (fallback para formatos antigos).
     """
-    df_bruto = ler_arquivo_excel(f)
+    df_bruto = pd.read_excel(ler_arquivo_excel(f))
 
     if COLUNAS_FORMATO_MENSAGEM.issubset(df_bruto.columns):
         return _normalizar_formato_mensagem(df_bruto)
@@ -100,7 +100,7 @@ def _carregar_arquivo(f):
 
     elif 'tweet' in f.name:
         f.seek(0)
-        df = ler_arquivo_excel(f, skiprows=6)
+        df = pd.read_excel(ler_arquivo_excel(f),skiprows=6)
         df = df.dropna(subset=['Unnamed: 0'])
         df = df.rename(columns={
             'Username': 'ProfileId',
@@ -111,7 +111,7 @@ def _carregar_arquivo(f):
 
     else:
         f.seek(0)
-        df = ler_arquivo_excel(f, skiprows=6)
+        df = pd.read_excel(ler_arquivo_excel(f), skiprows=6)
         df = df.dropna(subset=['Unnamed: 0'])
         df = df.rename(columns={'Profile ID': 'ProfileId'})
         df = _garantir_likes(df)
