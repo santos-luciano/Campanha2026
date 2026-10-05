@@ -28,13 +28,9 @@ def ler_arquivo_excel(arquivo):
     Remove atributos showZeroes dos arquivos XML internos de um .xlsx
     e retorna o arquivo corrigido em memória.
     """
+
+    # O arquivo recebido pelo Streamlit já está em memória
     conteudo_original = arquivo.getvalue()
-
-    arquivo_corrigido = io.BytesIO()
-
-
-    with open(arquivo, "rb") as f:
-        conteudo_original = f.read()
 
     arquivo_corrigido = io.BytesIO()
 
@@ -66,7 +62,7 @@ def ler_arquivo_excel(arquivo):
     arquivo_corrigido.seek(0)
 
     return arquivo_corrigido
-
+    
 def _carregar_arquivo(f):
     """
     Lê um único arquivo Excel. A detecção por ASSINATURA DE COLUNAS tem
