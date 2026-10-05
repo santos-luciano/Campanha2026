@@ -12,10 +12,25 @@ COLUNAS_FORMATO_FACEBOOK = {'name', 'nick_name', 'message', 'profile_id', 'time'
 
 
 def carregar_e_normalizar(files):
-    dfs = [_carregar_arquivo(f) for f in files]
+    dfs = []
+
+    for f in files:
+        try:
+            df = _carregar_arquivo(f)
+            dfs.append(df)
+
+        except Exception as e:
+            raise RuntimeError(
+                f"Erro ao processar o arquivo '{f.name}': {e}"
+            ) from e
 
     df = pd.concat(dfs, ignore_index=True)
-    df['Comment'] = df['Comment'].str.replace('\n', '', regex=False)
+
+    df['Comment'] = df['Comment'].str.replace(
+        '\n',
+        '',
+        regex=False
+    )
 
     if 'Likes' not in df.columns:
         df['Likes'] = None
@@ -26,52 +41,58 @@ def _ler_excel(f, **kwargs):
     """
     Lê o Excel normalmente.
 
-    Caso o arquivo contenha o atributo incompatível 'showZeroes',
-    corrige temporariamente o XML interno do XLSX e tenta novamente.
+    Se houver algum problema no XML interno relacionado ao atributo
+    'showZeroes', remove esse atributo e tenta ler novamente.
     """
+
     f.seek(0)
 
     try:
+        # Primeira tentativa: arquivo original
         return pd.read_excel(f, **kwargs)
 
-    except TypeError as e:
-        if 'showZeroes' not in str(e):
-            raise
+    except Exception as erro_original:
 
+        # Volta ao início do arquivo
         f.seek(0)
 
         arquivo = io.BytesIO(f.read())
         arquivo_corrigido = io.BytesIO()
 
-        with zipfile.ZipFile(arquivo, 'r') as zin:
-            with zipfile.ZipFile(
-                arquivo_corrigido,
-                'w',
-                zipfile.ZIP_DEFLATED
-            ) as zout:
+        try:
+            with zipfile.ZipFile(arquivo, 'r') as zin:
+                with zipfile.ZipFile(
+                    arquivo_corrigido,
+                    'w',
+                    zipfile.ZIP_DEFLATED
+                ) as zout:
 
-                for item in zin.infolist():
-                    conteudo = zin.read(item.filename)
+                    for item in zin.infolist():
+                        conteudo = zin.read(item.filename)
 
-                    # Corrige apenas os XMLs das planilhas
-                    if (
-                        item.filename.startswith('xl/worksheets/')
-                        and item.filename.endswith('.xml')
-                    ):
-                        conteudo = conteudo.replace(
-                            b' showZeroes="1"',
-                            b''
-                        )
-                        conteudo = conteudo.replace(
-                            b' showZeroes="0"',
-                            b''
-                        )
+                        if (
+                            item.filename.startswith('xl/worksheets/')
+                            and item.filename.endswith('.xml')
+                        ):
+                            conteudo = conteudo.replace(
+                                b' showZeroes="1"',
+                                b''
+                            )
+                            conteudo = conteudo.replace(
+                                b' showZeroes="0"',
+                                b''
+                            )
 
-                    zout.writestr(item, conteudo)
+                        zout.writestr(item, conteudo)
 
-        arquivo_corrigido.seek(0)
+            arquivo_corrigido.seek(0)
 
-        return pd.read_excel(arquivo_corrigido, **kwargs)
+            # Segunda tentativa: arquivo corrigido
+            return pd.read_excel(arquivo_corrigido, **kwargs)
+
+        except Exception:
+            # Se não conseguir corrigir, mantém o erro original
+            raise erro_original
 
 
 def _carregar_arquivo(f):
