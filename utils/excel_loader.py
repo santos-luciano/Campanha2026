@@ -16,13 +16,18 @@ def carregar_e_normalizar(files):
 
     for f in files:
         try:
+            print(f"Processando arquivo: {f.name}")
+
             df = _carregar_arquivo(f)
+
             dfs.append(df)
 
         except Exception as e:
-            raise RuntimeError(
-                f"Erro ao processar o arquivo '{f.name}': {e}"
-            ) from e
+            print(f"ERRO NO ARQUIVO: {f.name}")
+            print(f"TIPO DO ERRO: {type(e).__name__}")
+            print(f"ERRO: {e}")
+
+            raise
 
     df = pd.concat(dfs, ignore_index=True)
 
