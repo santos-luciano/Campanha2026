@@ -28,6 +28,10 @@ def ler_arquivo_excel(arquivo):
     Remove atributos showZeroes dos arquivos XML internos de um .xlsx
     e retorna o arquivo corrigido em memória.
     """
+    conteudo_original = arquivo.getvalue()
+
+    arquivo_corrigido = io.BytesIO()
+
 
     with open(arquivo, "rb") as f:
         conteudo_original = f.read()
