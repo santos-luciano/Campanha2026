@@ -20,6 +20,46 @@ def carregar_e_normalizar(files):
     return df
 
 
+def ler_arquivo_excel(arquivo):
+    """
+    Remove atributos showZeroes dos arquivos XML internos de um .xlsx
+    e retorna o arquivo corrigido em memória.
+    """
+
+    with open(arquivo, "rb") as f:
+        conteudo_original = f.read()
+
+    arquivo_corrigido = io.BytesIO()
+
+    with zipfile.ZipFile(
+        io.BytesIO(conteudo_original),
+        "r"
+    ) as zin:
+
+        with zipfile.ZipFile(
+            arquivo_corrigido,
+            "w",
+            zipfile.ZIP_DEFLATED
+        ) as zout:
+
+            for item in zin.infolist():
+
+                conteudo = zin.read(item.filename)
+
+                if item.filename.endswith(".xml"):
+
+                    conteudo = re.sub(
+                        rb'\s+showZeroes\s*=\s*"[^"]*"',
+                        b"",
+                        conteudo
+                    )
+
+                zout.writestr(item, conteudo)
+
+    arquivo_corrigido.seek(0)
+
+    return arquivo_corrigido
+
 def _carregar_arquivo(f):
     """
     Lê um único arquivo Excel. A detecção por ASSINATURA DE COLUNAS tem
@@ -27,7 +67,7 @@ def _carregar_arquivo(f):
     Ordem de checagem: formato Instagram -> formato Facebook -> nome de
     arquivo (fallback para formatos antigos).
     """
-    df_bruto = pd.read_excel(f)
+    df_bruto = ler_arquivo_excel(f)
 
     if COLUNAS_FORMATO_MENSAGEM.issubset(df_bruto.columns):
         return _normalizar_formato_mensagem(df_bruto)
@@ -57,7 +97,7 @@ def _carregar_arquivo(f):
 
     elif 'tweet' in f.name:
         f.seek(0)
-        df = pd.read_excel(f, skiprows=6)
+        df = ler_arquivo_excel(f, skiprows=6)
         df = df.dropna(subset=['Unnamed: 0'])
         df = df.rename(columns={
             'Username': 'ProfileId',
@@ -68,7 +108,7 @@ def _carregar_arquivo(f):
 
     else:
         f.seek(0)
-        df = pd.read_excel(f, skiprows=6)
+        df = ler_arquivo_excel(f, skiprows=6)
         df = df.dropna(subset=['Unnamed: 0'])
         df = df.rename(columns={'Profile ID': 'ProfileId'})
         df = _garantir_likes(df)
