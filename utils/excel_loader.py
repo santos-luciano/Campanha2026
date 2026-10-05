@@ -1,8 +1,5 @@
 import pandas as pd
 
-import io
-import zipfile
-
 # Formato "bruto" de comentários do Instagram
 COLUNAS_FORMATO_MENSAGEM = {'username', 'profile_id', 'message', 'time'}
 
@@ -12,92 +9,15 @@ COLUNAS_FORMATO_FACEBOOK = {'name', 'nick_name', 'message', 'profile_id', 'time'
 
 
 def carregar_e_normalizar(files):
-    dfs = []
-
-    for f in files:
-        try:
-            print(f"Processando arquivo: {f.name}")
-
-            df = _carregar_arquivo(f)
-
-            dfs.append(df)
-
-        except Exception as e:
-            print(f"ERRO NO ARQUIVO: {f.name}")
-            print(f"TIPO DO ERRO: {type(e).__name__}")
-            print(f"ERRO: {e}")
-
-            raise
+    dfs = [_carregar_arquivo(f) for f in files]
 
     df = pd.concat(dfs, ignore_index=True)
-
-    df['Comment'] = df['Comment'].str.replace(
-        '\n',
-        '',
-        regex=False
-    )
+    df['Comment'] = df['Comment'].str.replace('\n', '', regex=False)
 
     if 'Likes' not in df.columns:
         df['Likes'] = None
 
     return df
-
-def _ler_excel(f, **kwargs):
-    """
-    Lê o Excel normalmente.
-
-    Se houver algum problema no XML interno relacionado ao atributo
-    'showZeroes', remove esse atributo e tenta ler novamente.
-    """
-
-    f.seek(0)
-
-    try:
-        # Primeira tentativa: arquivo original
-        return pd.read_excel(f, **kwargs)
-
-    except Exception as erro_original:
-
-        # Volta ao início do arquivo
-        f.seek(0)
-
-        arquivo = io.BytesIO(f.read())
-        arquivo_corrigido = io.BytesIO()
-
-        try:
-            with zipfile.ZipFile(arquivo, 'r') as zin:
-                with zipfile.ZipFile(
-                    arquivo_corrigido,
-                    'w',
-                    zipfile.ZIP_DEFLATED
-                ) as zout:
-
-                    for item in zin.infolist():
-                        conteudo = zin.read(item.filename)
-
-                        if (
-                            item.filename.startswith('xl/worksheets/')
-                            and item.filename.endswith('.xml')
-                        ):
-                            conteudo = conteudo.replace(
-                                b' showZeroes="1"',
-                                b''
-                            )
-                            conteudo = conteudo.replace(
-                                b' showZeroes="0"',
-                                b''
-                            )
-
-                        zout.writestr(item, conteudo)
-
-            arquivo_corrigido.seek(0)
-
-            # Segunda tentativa: arquivo corrigido
-            return pd.read_excel(arquivo_corrigido, **kwargs)
-
-        except Exception:
-            # Se não conseguir corrigir, mantém o erro original
-            raise erro_original
 
 
 def _carregar_arquivo(f):
@@ -107,7 +27,7 @@ def _carregar_arquivo(f):
     Ordem de checagem: formato Instagram -> formato Facebook -> nome de
     arquivo (fallback para formatos antigos).
     """
-    df_bruto = _ler_excel(f)
+    df_bruto = pd.read_excel(f)
 
     if COLUNAS_FORMATO_MENSAGEM.issubset(df_bruto.columns):
         return _normalizar_formato_mensagem(df_bruto)
@@ -137,7 +57,7 @@ def _carregar_arquivo(f):
 
     elif 'tweet' in f.name:
         f.seek(0)
-        df = _ler_excel(f, skiprows=6)
+        df = pd.read_excel(f, skiprows=6)
         df = df.dropna(subset=['Unnamed: 0'])
         df = df.rename(columns={
             'Username': 'ProfileId',
@@ -148,7 +68,7 @@ def _carregar_arquivo(f):
 
     else:
         f.seek(0)
-        df = _ler_excel(f, skiprows=6)
+        df = pd.read_excel(f, skiprows=6)
         df = df.dropna(subset=['Unnamed: 0'])
         df = df.rename(columns={'Profile ID': 'ProfileId'})
         df = _garantir_likes(df)
