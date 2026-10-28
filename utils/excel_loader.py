@@ -70,6 +70,9 @@ def _carregar_arquivo(f):
     Ordem de checagem: formato Instagram -> formato Facebook -> nome de
     arquivo (fallback para formatos antigos).
     """
+
+    PADRAO_ARQUIVO_DATA = re.compile(r'_\d{4}_\d{2}_\d{2}\.xlsx$', re.IGNORECASE)
+
     df_bruto = pd.read_excel(ler_arquivo_excel(f))
 
     if COLUNAS_FORMATO_MENSAGEM.issubset(df_bruto.columns):
@@ -78,7 +81,20 @@ def _carregar_arquivo(f):
     if COLUNAS_FORMATO_FACEBOOK.issubset(df_bruto.columns):
         return _normalizar_formato_facebook(df_bruto)
 
-    if 'exportcomments' in f.name:
+    # Arquivos do Twitter: formato Comment, mes_ano, id
+    if PADRAO_ARQUIVO_DATA.search(f.name):
+        df = pd.read_excel(ler_arquivo_excel(f), dtype={'id': str})
+        df = df.rename(columns={
+            'mes_ano': 'Date',
+            'id': 'ProfileId',
+        })
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        df['Name'] = df['ProfileId']
+        df = df.dropna(subset=['Comment'])
+        df = _garantir_likes(df)
+        return df[['Name', 'ProfileId', 'Comment', 'Date', 'Likes']]
+
+    elif 'exportcomments' in f.name:
         df = df_bruto.rename(columns={
             'Username': 'Name',
             "Display Name": "ProfileId",
