@@ -26,7 +26,7 @@ STOPWORDS_PADRAO = [
     'oficialcaetano', 'laisa', 'figueiredo', 'caetano',
     'igsh', 'www', 'mwjjztdootvlmhhwnq', 'instagram', 'facebook',
     'set', 'php', 'type', 'fbid', 'time', 'photo', 'jaqueswagner',
-    'co', 'ja', 'vai', 'camacari',
+    'co', 'ja', 'vai', 'camacari',"bruno reis","brunoreis","bruno","reis"
 ]
 
 
