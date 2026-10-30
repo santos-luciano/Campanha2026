@@ -94,6 +94,21 @@ def _carregar_arquivo(f):
         df = _garantir_likes(df)
         return df[['Name', 'ProfileId', 'Comment', 'Date', 'Likes']]
 
+    elif 'ig_comment' in f.name.lower() or 'fb_comment' in f.name.lower():
+        df = pd.read_excel(ler_arquivo_excel(f), dtype={'Profile ID': str})
+
+        df = df.rename(columns={
+            'Profile ID': 'ProfileId',
+            'Username': 'Name',
+        })
+
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+
+        df = df.dropna(subset=['Comment'])
+        df = _garantir_likes(df)
+
+        return df[['Name', 'ProfileId', 'Comment', 'Date', 'Likes']]
+
     elif 'exportcomments' in f.name:
         df = df_bruto.rename(columns={
             'Username': 'Name',
